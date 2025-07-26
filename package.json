@@ -1,0 +1,34 @@
+{
+  "name": "kadian_server",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon app/index.js",
+    "start": "node app/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/1True-Tech/kadian_server.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/1True-Tech/kadian_server/issues"
+  },
+  "homepage": "https://github.com/1True-Tech/kadian_server#readme",
+  "description": "",
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "lru-cache": "^11.1.0",
+    "mongoose": "^8.16.5",
+    "nodemon": "^3.1.10"
+  }
+}
