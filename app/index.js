@@ -13,8 +13,7 @@ import env from "../lib/constants/env.js";
 
 // App setup
 const app = express();
-const portNum = parseInt(env.PORT);
-const PORT = !isNaN(portNum) ? portNum : 5000;
+const PORT = env.PORT;
 
 // Middleware
 app.use(cors());
