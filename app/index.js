@@ -1,23 +1,36 @@
-import express from 'express';
-import bodyParser from 'body-parser';
-import cors from 'cors';
+// Core express dependencies
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
 
+// Helpers
+import withErrorHandling from "../lib/utils/withErrorHandling.js";
+import routeHandler from "../lib/utils/routeHandler.js";
+
+// Route logic
+import { healthLogic } from "./routerLogic/index.js";
+import env from "../lib/constants/env.js";
+
+// App setup
 const app = express();
-const port = 5000;
+const portNum = parseInt(env.PORT);
+const PORT = !isNaN(portNum) ? portNum : 5000;
+
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-app.get('/health', (_, res) => {
-  res.json({
-    status: 'ok',
-    message: 'Server is running smoothly!'
-  });
+// Routes
+routeHandler({
+  app,
+  method: "get",
+  path: "/health",
+  handler: withErrorHandling(healthLogic),
 });
 
-app.listen(port, ()=>{
-    console.log(`Ayoo wagwan, enter your route through the port ahead ${port}`);
-    console.log(`probably make it like this in your postman or browser; http://localhost:${port}`);
-    console.log(`check the /health route to see if the server is running`);
-})
-
-
+// Starting the server
+app.listen(PORT, () => {
+  console.log(`🚀 Server is live on port ${PORT}`);
+  console.log(`🔗 Test it at: http://localhost:${PORT}/health`);
+  console.log(`💡 Tip: You can use Postman or your browser to hit the route.`);
+});
