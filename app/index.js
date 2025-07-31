@@ -27,6 +27,22 @@ routeHandler({
   handler: withErrorHandling(healthLogic),
 });
 
+app.get("/services", function(request, response) {
+
+});
+
+app.get("/about", function(request, response) {
+
+});
+
+app.post("/addproduct", function(request, response) {
+
+});
+
+app.get("/contact", function(request, response) {
+
+});
+
 // Starting the server
 app.listen(PORT, () => {
   console.log(`🚀 Server is live on port ${PORT}`);
