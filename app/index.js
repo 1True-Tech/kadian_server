@@ -10,6 +10,8 @@ import routeHandler from "../lib/utils/routeHandler.js";
 // Route logic
 import { healthLogic } from "./routerLogic/index.js";
 import env from "../lib/constants/env.js";
+import useRouter from "../lib/utils/routeHandler.js";
+import { login } from "./routerLogic/login.js";
 
 // App setup
 const app = express();
@@ -19,12 +21,19 @@ const PORT = env.PORT;
 app.use(cors());
 app.use(bodyParser.json());
 
+const router = useRouter(app)
+
 // Routes
-routeHandler({
-  app,
+router({
   method: "get",
   path: "/health",
   handler: withErrorHandling(healthLogic),
+});
+
+router({
+  method: "post",
+  path: "/auth/login",
+  handler: withErrorHandling(login),
 });
 
 app.get("/", function(request, response) {
@@ -34,6 +43,9 @@ app.get("/", function(request, response) {
 app.get("/login", function(request, response) {
 
 });
+routeHandler({
+
+})
 
 app.get("/logout", function(request, response) {
 
