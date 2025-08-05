@@ -27,7 +27,43 @@ routeHandler({
   handler: withErrorHandling(healthLogic),
 });
 
+app.get("/", function(request, response) {
+
+});
+
+app.get("/login", function(request, response) {
+
+});
+
+app.get("/logout", function(request, response) {
+
+});
+
+app.get("/cart", function(request, response) { //View contents of shopping cart
+
+});
+
 app.get("/services", function(request, response) {
+
+});
+
+app.get("/shop", function(request, response) {
+
+});
+
+app.get("/products/:id", function(request, response) {
+
+});
+
+app.get("/consultation", function(request, response) {
+
+});
+
+app.get("/sale", function(request, response) {
+
+});
+
+app.get("/guides", function(request, response) {
 
 });
 
