@@ -7,3 +7,4 @@
 # exclude environment variable files
 .env
 /.idea/
+/kadian-inventory/.idea/
