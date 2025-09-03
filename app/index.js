@@ -24,6 +24,7 @@ app.use(bodyParser.json());
 const router = useRouter(app);
 
 // Routes
+// auth
 router({
   method: "get",
   path: "/health",
@@ -40,6 +41,7 @@ router({
   path: "/auth/register",
   handler: withErrorHandling(auth.register),
 });
+// user info
 router({
   method: "get",
   path: "/auth/me",
@@ -55,6 +57,41 @@ router({
   method: "delete",
   path: "/auth/me",
   handler: withErrorHandling(auth.me.myInfoDelete, { requireAuth: true }),
+});
+
+// cart
+router({
+  method: "get",
+  path: "/auth/me/cart",
+  handler: withErrorHandling(auth.me.cart.myCart, { requireAuth: true }),
+});
+router({
+  method: "patch",
+  path: "/auth/me/cart",
+  handler: withErrorHandling(auth.me.cart.myCartPatch, { requireAuth: true }),
+});
+
+router({
+  method: "delete",
+  path: "/auth/me/cart",
+  handler: withErrorHandling(auth.me.cart.myCartDelete, { requireAuth: true }),
+});
+// wishlist
+router({
+  method: "get",
+  path: "/auth/me/wishlist",
+  handler: withErrorHandling(auth.me.wishlist.myWishlist, { requireAuth: true }),
+});
+router({
+  method: "patch",
+  path: "/auth/me/wishlist",
+  handler: withErrorHandling(auth.me.wishlist.myWishlistPatch, { requireAuth: true }),
+});
+
+router({
+  method: "delete",
+  path: "/auth/me/wishlist",
+  handler: withErrorHandling(auth.me.wishlist.myWishlistDelete, { requireAuth: true }),
 });
 
 app.get("/logout", function (request, response) {});
