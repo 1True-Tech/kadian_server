@@ -11,7 +11,7 @@ import routeHandler from "../lib/utils/routeHandler.js";
 import { healthLogic } from "./routerLogic/index.js";
 import env from "../lib/constants/env.js";
 import useRouter from "../lib/utils/routeHandler.js";
-import { login } from "./routerLogic/login.js";
+import auth from "./routerLogic/auth/index.js";
 
 // App setup
 const app = express();
@@ -21,7 +21,7 @@ const PORT = env.PORT;
 app.use(cors());
 app.use(bodyParser.json());
 
-const router = useRouter(app)
+const router = useRouter(app);
 
 // Routes
 router({
@@ -33,63 +33,53 @@ router({
 router({
   method: "post",
   path: "/auth/login",
-  handler: withErrorHandling(login),
+  handler: withErrorHandling(auth.login),
+});
+router({
+  method: "post",
+  path: "/auth/register",
+  handler: withErrorHandling(auth.register),
+});
+router({
+  method: "get",
+  path: "/auth/me",
+  handler: withErrorHandling(auth.me.myInfo, { requireAuth: true }),
+});
+router({
+  method: "patch",
+  path: "/auth/me",
+  handler: withErrorHandling(auth.me.myInfoPatch, { requireAuth: true }),
 });
 
-app.get("/", function(request, response) {
-
+router({
+  method: "delete",
+  path: "/auth/me",
+  handler: withErrorHandling(auth.me.myInfoDelete, { requireAuth: true }),
 });
 
-app.get("/login", function(request, response) {
+app.get("/logout", function (request, response) {});
 
-});
-routeHandler({
-
-})
-
-app.get("/logout", function(request, response) {
-
+app.get("/cart", function (request, response) {
+  //View contents of shopping cart
 });
 
-app.get("/cart", function(request, response) { //View contents of shopping cart
+app.get("/services", function (request, response) {});
 
-});
+app.get("/shop", function (request, response) {});
 
-app.get("/services", function(request, response) {
+app.get("/products/:id", function (request, response) {});
 
-});
+app.get("/consultation", function (request, response) {});
 
-app.get("/shop", function(request, response) {
+app.get("/sale", function (request, response) {});
 
-});
+app.get("/guides", function (request, response) {});
 
-app.get("/products/:id", function(request, response) {
+app.get("/about", function (request, response) {});
 
-});
+app.post("/addproduct", function (request, response) {});
 
-app.get("/consultation", function(request, response) {
-
-});
-
-app.get("/sale", function(request, response) {
-
-});
-
-app.get("/guides", function(request, response) {
-
-});
-
-app.get("/about", function(request, response) {
-
-});
-
-app.post("/addproduct", function(request, response) {
-
-});
-
-app.get("/contact", function(request, response) {
-
-});
+app.get("/contact", function (request, response) {});
 
 // Starting the server
 app.listen(PORT, () => {
