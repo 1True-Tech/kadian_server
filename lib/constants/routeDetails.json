@@ -1,0 +1,306 @@
+{
+  "api_documentation": {
+    "base_url": "your-server-url",
+    "routes": {
+      "health": {
+        "method": "GET",
+        "path": "/health",
+        "auth_required": false,
+        "description": "Health check endpoint"
+      },
+      "auth": {
+        "login": {
+          "method": "POST",
+          "path": "/auth/login",
+          "auth_required": false,
+          "body_structure": {
+            "email": "string (required)",
+            "password": "string (required)"
+          },
+          "response_data": "auth tokens object"
+        },
+        "register": {
+          "method": "POST",
+          "path": "/auth/register",
+          "auth_required": false,
+          "body_structure": {
+            "email": "string (required)",
+            "password": "string (required)",
+            "name": {
+              "first": "string (required)",
+              "last": "string (required)"
+            }
+          },
+          "response_data": "auth tokens object"
+        },
+        "user_info": {
+          "get": {
+            "method": "GET",
+            "path": "/auth/me",
+            "auth_required": true,
+            "description": "Get current user info"
+          },
+          "update": {
+            "method": "PATCH",
+            "path": "/auth/me",
+            "auth_required": true,
+            "body_structure": {
+              "updateData": "object (any user fields to update)"
+            }
+          },
+          "delete": {
+            "method": "DELETE",
+            "path": "/auth/me",
+            "auth_required": true,
+            "description": "Delete user account"
+          }
+        }
+      },
+      "cart": {
+        "get": {
+          "method": "GET",
+          "path": "/auth/me/cart",
+          "auth_required": true,
+          "description": "Get user's cart"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/auth/me/cart",
+          "auth_required": true,
+          "body_structure": {
+            "updateData": "CartItem[] | CartItem (array or single cart item)"
+          }
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/auth/me/cart",
+          "auth_required": true,
+          "description": "Clear user's cart"
+        },
+        "cart_item": {
+          "get": {
+            "method": "GET",
+            "path": "/auth/me/cart/:id",
+            "auth_required": true,
+            "path_params": {
+              "id": "cart item id"
+            }
+          },
+          "update": {
+            "method": "PATCH",
+            "path": "/auth/me/cart/:id",
+            "auth_required": true,
+            "path_params": {
+              "id": "cart item id"
+            }
+          },
+          "delete": {
+            "method": "DELETE",
+            "path": "/auth/me/cart/:id",
+            "auth_required": true,
+            "path_params": {
+              "id": "cart item id"
+            }
+          }
+        }
+      },
+      "wishlist": {
+        "get": {
+          "method": "GET",
+          "path": "/auth/me/wishlist",
+          "auth_required": true,
+          "description": "Get user's wishlist"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/auth/me/wishlist",
+          "auth_required": true
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/auth/me/wishlist",
+          "auth_required": true,
+          "description": "Clear user's wishlist"
+        },
+        "wishlist_item": {
+          "get": {
+            "method": "GET",
+            "path": "/auth/me/wishlist/:id",
+            "auth_required": true,
+            "path_params": {
+              "id": "wishlist item id"
+            }
+          },
+          "delete": {
+            "method": "DELETE",
+            "path": "/auth/me/wishlist/:id",
+            "auth_required": true,
+            "path_params": {
+              "id": "wishlist item id"
+            }
+          }
+        }
+      },
+      "orders": {
+        "get_all": {
+          "method": "GET",
+          "path": "/orders",
+          "auth_required": true,
+          "allowed_roles": ["admin"],
+          "description": "Get all orders (admin only)"
+        },
+        "get_by_user": {
+          "method": "GET",
+          "path": "/orders-by-user",
+          "auth_required": false,
+          "description": "Get orders by user"
+        },
+        "create": {
+          "method": "POST",
+          "path": "/orders",
+          "auth_required": false,
+          "body_structure": {
+            "items": [
+              {
+                "sku": "string (required)",
+                "quantity": "number (required)",
+                "price": "number (required)",
+                "slug": "string (required)"
+              }
+            ],
+            "shippingAddress": "object (required)",
+            "customerInfo": {
+              "name": {
+                "first": "string (required for guests)",
+                "last": "string (required for guests)"
+              },
+              "phone": "string (required for guests)",
+              "email": "string (required for guests)"
+            }
+          },
+          "response_data": {
+            "orderId": "string",
+            "statusValue": "string"
+          }
+        },
+        "order_item": {
+          "get": {
+            "method": "GET",
+            "path": "/orders/:id",
+            "auth_required": false,
+            "path_params": {
+              "id": "order id"
+            }
+          },
+          "update": {
+            "method": "PATCH",
+            "path": "/orders/:id",
+            "auth_required": true,
+            "allowed_roles": ["admin"],
+            "path_params": {
+              "id": "order id"
+            }
+          },
+          "cancel": {
+            "method": "DELETE",
+            "path": "/orders/:id/cancel",
+            "auth_required": false,
+            "path_params": {
+              "id": "order id"
+            },
+            "description": "Cancel order"
+          },
+          "permanent_delete": {
+            "method": "DELETE",
+            "path": "/orders/:id",
+            "auth_required": true,
+            "allowed_roles": ["admin"],
+            "path_params": {
+              "id": "order id"
+            },
+            "description": "Permanently delete order (admin only)"
+          }
+        }
+      },
+      "inventory": {
+        "get_all": {
+          "method": "GET",
+          "path": "/inventory",
+          "auth_required": false,
+          "description": "Get all inventory items"
+        },
+        "refresh": {
+          "method": "POST",
+          "path": "/inventory/_refresh",
+          "auth_required": true,
+          "allowed_roles": ["admin"],
+          "query_params": {
+            "refreshType": "string ('new' | 'full') - defaults to 'new'"
+          },
+          "body_structure": {
+            "data": [
+              {
+                "id": "string (required)",
+                "slug": "string (required)",
+                "name": "string",
+                "variants": [
+                  {
+                    "sku": "string",
+                    "stock": "number",
+                    "stockThreshold": "number",
+                    "price": "number"
+                  }
+                ],
+                "createdAt": "string",
+                "updatedAt": "string"
+              }
+            ]
+          },
+          "description": "Refresh inventory data (admin only)"
+        },
+        "inventory_item": {
+          "get": {
+            "method": "GET",
+            "path": "/inventory/:productId",
+            "auth_required": false,
+            "path_params": {
+              "productId": "product id"
+            }
+          },
+          "update": {
+            "method": "PATCH",
+            "path": "/inventory/:productId",
+            "auth_required": false,
+            "path_params": {
+              "productId": "product id"
+            }
+          },
+          "inventory_item_sku": {
+            "get": {
+              "method": "GET",
+              "path": "/inventory/:productId/:sku",
+              "auth_required": false,
+              "path_params": {
+                "productId": "product id",
+                "sku": "product sku"
+              }
+            },
+            "stock_update": {
+              "method": "PATCH",
+              "path": "/inventory/:productId/:sku/stock",
+              "auth_required": false,
+              "path_params": {
+                "productId": "product id",
+                "sku": "product sku"
+              },
+              "body_structure": {
+                "delta": "number (stock change amount)"
+              },
+              "description": "Update stock for specific SKU"
+            }
+          }
+        }
+      }
+    }
+  }
+}
