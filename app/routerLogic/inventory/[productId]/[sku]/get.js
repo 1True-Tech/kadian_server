@@ -25,7 +25,7 @@ export default async function get(event) {
   }
 
   // Find inventory item by product slug
-  const inventoryItem = await Inventory.findOne({ slug: productId });
+  const inventoryItem = await Inventory.findOne({ sanityProductId: event.params.productId });
   if (!inventoryItem) {
     return {
       statusCode: 404,
@@ -34,7 +34,7 @@ export default async function get(event) {
   }
 
   // Find the variant by SKU and update stock
-  const variant = inventoryItem.variants.find((v) => v.sku === sku);
+  const variant = inventoryItem.variants.find((v) => v.sku === event.params.sku);
   if (!variant) {
     return {
       statusCode: 404,
@@ -46,13 +46,13 @@ export default async function get(event) {
     return {
       status: "good",
       statusCode: 200,
-      message: "Inventory updated successfully.",
+      message: "Inventory item fetched successfully.",
       data: variant,
     };
   } catch (error) {
     return {
       statusCode: 500,
-      message: `Failed to update inventory: ${error.message}`,
+      message: `Failed to fetch inventory: ${error.message}`,
     };
   }
 }

@@ -59,7 +59,7 @@ export default async function stockUpdate(event) {
   }
 
   // Find inventory item by product slug
-  const inventoryItem = await Inventory.findOne({ slug: productId });
+  const inventoryItem = await Inventory.findOne({ sanityProductId: event.params.productId });
   if (!inventoryItem) {
     return {
       statusCode: 404,
@@ -69,7 +69,7 @@ export default async function stockUpdate(event) {
   }
 
   // Find the variant by SKU and update stock
-  const variant = inventoryItem.variants.find((v) => v.sku === sku);
+  const variant = inventoryItem.variants.find((v) => v.sku === event.params.sku);
   if (!variant) {
     return {
       statusCode: 404,
@@ -77,7 +77,8 @@ export default async function stockUpdate(event) {
       message: "Variant with the specified SKU not found.",
     };
   }
-  if (variant.currentStock === 0 && delta < 0) {
+  const stockThreshold = variant.stockThreshold||0
+  if (variant.currentStock === stockThreshold && delta < 0) {
     return {
       status: "bad",
       statusCode: 409,
@@ -85,7 +86,7 @@ export default async function stockUpdate(event) {
     };
   }
 
-  const totalStock = variant["stock"];
+  const totalStock = variant.stock;
   if (variant.currentStock === totalStock && delta > 0) {
     return {
       status: "bad",
