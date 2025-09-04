@@ -12,6 +12,8 @@ import { healthLogic } from "./routerLogic/index.js";
 import env from "../lib/constants/env.js";
 import useRouter from "../lib/utils/routeHandler.js";
 import auth from "./routerLogic/auth/index.js";
+import orders from "./routerLogic/orders/index.js";
+import inventory from "./routerLogic/inventory/index.js";
 
 // App setup
 const app = express();
@@ -123,29 +125,81 @@ router({
   handler: withErrorHandling(auth.me.wishlist.wishListItem.deleteItem, { requireAuth: true }),
 });
 
-app.get("/logout", function (request, response) {});
-
-app.get("/cart", function (request, response) {
-  //View contents of shopping cart
+// orders
+router({
+  method: "get",
+  path: "/orders",
+  handler: withErrorHandling(orders.get, {requireAuth:true,allowedRoles:["admin"]}),
+});
+router({
+  method: "get",
+  path: "/orders-by-user",
+  handler: withErrorHandling(orders.getByUser),
 });
 
-app.get("/services", function (request, response) {});
+router({
+  method: "post",
+  path: "/orders",
+  handler: withErrorHandling(orders.post),
+});
+// orders-item
+router({
+  method: "get",
+  path: "/orders/:id",
+  handler: withErrorHandling(orders.orderItem.getOrder),
+});
+router({
+  method: "patch",
+  path: "/orders/:id",
+  handler: withErrorHandling(orders.orderItem.updateOrder, {requireAuth:true,allowedRoles:["admin"]}),
+});
 
-app.get("/shop", function (request, response) {});
+router({
+  method: "delete",
+  path: "/orders/:id/cancel",
+  handler: withErrorHandling(orders.orderItem.deleteOrder),
+});
+router({
+  method: "delete",
+  path: "/orders/:id",
+  handler: withErrorHandling(orders.orderItem.permanentlyDeleteOrder, {requireAuth:true,allowedRoles:["admin"]}),
+});
 
-app.get("/products/:id", function (request, response) {});
+// inventory
 
-app.get("/consultation", function (request, response) {});
+router({
+  method: "get",
+  path: "/inventory",
+  handler: withErrorHandling(inventory.get),
+});
+router({
+  method: "post",
+  path: "/inventory/_refresh",
+  handler: withErrorHandling(inventory.refreshInventory, {requireAuth:true,allowedRoles:["admin"]}),
+});
+// inventory-item
+router({
+  method: "get",
+  path: "/inventory/:productId",
+  handler: withErrorHandling(inventory.inventoryItem.get),
+});
+router({
+  method: "patch",
+  path: "/inventory/:productId",
+  handler: withErrorHandling(inventory.inventoryItem.patch),
+});
+// inventory-item-sku
+router({
+  method: "get",
+  path: "/inventory/:productId/:sku",
+  handler: withErrorHandling(inventory.inventoryItem.inventoryItemSku.get),
+});
+router({
+  method: "patch",
+  path: "/inventory/:productId/:sku/stock",
+  handler: withErrorHandling(inventory.inventoryItem.inventoryItemSku.stockUpdate),
+});
 
-app.get("/sale", function (request, response) {});
-
-app.get("/guides", function (request, response) {});
-
-app.get("/about", function (request, response) {});
-
-app.post("/addproduct", function (request, response) {});
-
-app.get("/contact", function (request, response) {});
 
 // Starting the server
 app.listen(PORT, () => {
