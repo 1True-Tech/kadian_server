@@ -9,20 +9,26 @@ import Order from "../../../models/order.js";
  * @returns {Promise<import('../../../types/api.js').generalResponse & OrderListResponse>}
  */
 export async function getByUser(event) {
-  const query = event.query;
-  const {
-    object: queries,
-    errorMessage,
-    hasError,
-  } = objectErrorBoundary(query, ["userId"], {
-    label: "Query parameters",
-    isQuery: true,
-  });
+  // Security: Users can only access their own orders
+  // Admin users can access any user's orders by providing userId in query
+  const isAdmin = event.auth?.userRole === "admin";
+  const requestedUserId = event.query?.userId;
+  const authenticatedUserId = event.auth?.userId;
 
-  if (hasError || !queries) {
+  let targetUserId;
+  
+  if (isAdmin && requestedUserId) {
+    // Admin can query any user's orders
+    targetUserId = requestedUserId;
+  } else {
+    // Regular users can only access their own orders
+    targetUserId = authenticatedUserId;
+  }
+
+  if (!targetUserId) {
     return {
       statusCode: 400,
-      message: "Failed to get orders: " + errorMessage,
+      message: "Failed to get orders: User ID not available",
     };
   }
   try {
@@ -38,7 +44,7 @@ export async function getByUser(event) {
   // 2. Fetch all orders
   try {
     // 3. Fetch user's orders
-    const orders = await Order.find({ userId: queries.userId }).sort({
+    const orders = await Order.find({ userId: targetUserId }).sort({
       createdAt: -1,
     });
 
