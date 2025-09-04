@@ -76,6 +76,23 @@ router({
   path: "/auth/me/cart",
   handler: withErrorHandling(auth.me.cart.myCartDelete, { requireAuth: true }),
 });
+// cart-item
+router({
+  method: "get",
+  path: "/auth/me/cart/:id",
+  handler: withErrorHandling(auth.me.cart.CartItem.get, { requireAuth: true }),
+});
+router({
+  method: "patch",
+  path: "/auth/me/cart/:id",
+  handler: withErrorHandling(auth.me.cart.CartItem.patch, { requireAuth: true }),
+});
+
+router({
+  method: "delete",
+  path: "/auth/me/cart/:id",
+  handler: withErrorHandling(auth.me.cart.CartItem.deleteItem, { requireAuth: true }),
+});
 // wishlist
 router({
   method: "get",
@@ -92,6 +109,18 @@ router({
   method: "delete",
   path: "/auth/me/wishlist",
   handler: withErrorHandling(auth.me.wishlist.myWishlistDelete, { requireAuth: true }),
+});
+// wishlist-item
+router({
+  method: "get",
+  path: "/auth/me/wishlist/:id",
+  handler: withErrorHandling(auth.me.wishlist.wishListItem.get, { requireAuth: true }),
+});
+
+router({
+  method: "delete",
+  path: "/auth/me/wishlist/:id",
+  handler: withErrorHandling(auth.me.wishlist.wishListItem.deleteItem, { requireAuth: true }),
 });
 
 app.get("/logout", function (request, response) {});

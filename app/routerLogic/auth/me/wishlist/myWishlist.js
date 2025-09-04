@@ -7,7 +7,6 @@ import User from "../../../../../models/user.js";
  * @returns {Partial<generalResponse>}
  */
 export default async function myWishlist(event) {
-  const auth = event.auth;
   // Connect to MongoDB
   try {
     await connectDbUsers();
