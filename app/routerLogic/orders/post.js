@@ -1,9 +1,8 @@
 /// <reference path="../../../types/order.js" />
-import Order from "../../../models/order.js";
-import env from "../../../lib/constants/env.js";
-import objectErrorBoundary from "../../../lib/utils/objectErrorBoundary.js";
-import connectDbOrders from "../../../lib/utils/mongo/connect-db-orders.js";
 import fetchCustomerInfo from "../../../lib/utils/fetch-customer-info.js";
+import connectDbOrders from "../../../lib/utils/mongo/connect-db-orders.js";
+import objectErrorBoundary from "../../../lib/utils/objectErrorBoundary.js";
+import Order from "../../../models/order.js";
 
 /**
  * Create a new order
@@ -15,6 +14,8 @@ import fetchCustomerInfo from "../../../lib/utils/fetch-customer-info.js";
  * }>}
  */
 export async function post(event) {
+  const baseUrl = event.req.protocol + "://" + event.req.get("host");
+
   const auth = event.auth;
   if (!auth) {
     return {
@@ -62,7 +63,8 @@ export async function post(event) {
   const customerInfoObj = await fetchCustomerInfo(
     isGuest,
     customerInfo,
-    event.auth?.token || ""
+    event.auth?.token || "",
+    event.req.protocol + "://" + event.req.get("host")
   );
 
   const totalAmount = items.reduce(
@@ -88,7 +90,7 @@ export async function post(event) {
       const { sku, quantity, slug } = item;
 
       const inventoryStockUpdate = await fetch(
-        `${env.baseUrl}/inventory/${slug}/${sku}/stock`,
+        `${baseUrl}/inventory/${slug}/${sku}/stock`,
         {
           method: "PATCH",
           body: JSON.stringify({ delta: -quantity }),

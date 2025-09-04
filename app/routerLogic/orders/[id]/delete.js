@@ -1,7 +1,6 @@
 import connectDbOrders from "../../../../lib/utils/mongo/connect-db-orders.js";
 import Order from "../../../../models/order.js";
 import objectErrorBoundary from "../../../../lib/utils/objectErrorBoundary.js";
-import env from "../../../../lib/constants/env.js";
 
 /**
  * Deletes an order by ID and updates inventory
@@ -9,6 +8,7 @@ import env from "../../../../lib/constants/env.js";
  * @returns {Promise<Object>} Response object with status and message
  */
 export async function deleteOrder(event) {
+  const baseUrl = event.req.protocol + "://" + event.req.get("host")
   // 1. Validate params
   const { object:params, errorMessage, hasError } = objectErrorBoundary(event.params, ["id"], {
     label: "Parameters",
@@ -64,7 +64,7 @@ export async function deleteOrder(event) {
       const { variantSku, quantity, sanityProductId } = item;
 
       const response = await fetch(
-        `${env.baseUrl}/inventory/${sanityProductId}/${variantSku}/stock`,
+        `${baseUrl}/inventory/${sanityProductId}/${variantSku}/stock`,
         {
           method: "PATCH",
           body: JSON.stringify({ delta: +quantity }),
