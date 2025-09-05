@@ -11,8 +11,8 @@
     },
     "security_features": {
       "rate_limiting": {
-        "general": "100 requests per 15 minutes",
-        "auth_endpoints": "5 requests per 15 minutes"
+        "general": "1000 requests per 15 minutes",
+        "auth_endpoints": "100 requests per 15 minutes"
       },
       "cors": "Configured for specific origins",
       "security_headers": "XSS protection, CSRF prevention, clickjacking protection"
