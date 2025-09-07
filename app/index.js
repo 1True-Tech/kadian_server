@@ -226,7 +226,7 @@ router({
 router({
   method: "patch",
   path: "/inventory/:productId/:sku/stock",
-  handler: withErrorHandling(inventory.inventoryItem.inventoryItemSku.stockUpdate, {requireAuth:true,allowedRoles:["admin"]}),
+  handler: withErrorHandling(inventory.inventoryItem.inventoryItemSku.stockUpdate),
 });
 
 

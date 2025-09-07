@@ -15,22 +15,16 @@ export default async function myWishlistPatch(event) {
   } catch (error) {
     return {
       statusCode: 500,
-      status: "bad",
       message: "Failed to connect to database while fetching user.",
     };
   }
   try {
-    const user = await User.findById(auth.userId).select(
-      "-password -__v"
-    );
+    const user = await User.findById(auth.userId).select("-password -__v");
 
     if (!user) {
       return {
-        connectionActivity: isOnline,
         statusCode: 404,
-        status: "bad",
         message: "User not found",
-        success: false,
       };
     }
 
@@ -38,25 +32,36 @@ export default async function myWishlistPatch(event) {
       object: body,
       hasError,
       errorMessage,
-    } = objectErrorBoundary(event.body, ["updateData"]);
+    } = objectErrorBoundary(event.body, ["updateData"], {
+      checkers: {
+        updateData: {
+          action(val) {
+            const hasError = Array.isArray(val)
+              ? val.length === 0 ||
+                val.some((item) => !item?.productId)
+              : !val?.productId;
+            return !hasError
+          },
+          message: "must not be an empty array, and must include a product id in the object"
+        },
+      },
+    });
 
     if (hasError || !body) {
       return {
-        connectionActivity: isOnline,
-        statusCode: 401,
-        status: "bad",
+        statusCode: 400,
         message: "Update failed: " + errorMessage,
-        success: false,
       };
     }
+    // hZm6tMI3obk6ZBXKf82VBt
 
     const updateData = body.updateData; // updateData should be an array of items
 
     const updatedUserCart = await User.findByIdAndUpdate(
-      token.data.userId,
+      auth.userId,
       {
-        $push: {
-          cart: {
+        $addToSet: {
+          wishList: {
             $each: Array.isArray(updateData) ? updateData : [updateData],
           },
         },
@@ -66,21 +71,16 @@ export default async function myWishlistPatch(event) {
 
     if (!updatedUserCart) {
       return {
-        connectionActivity: isOnline,
         statusCode: 500,
-        status: "bad",
-        message: "something went wrong: user wishlist can't be updated at the moment",
-        success: false,
+        message:
+          "something went wrong: user wishlist can't be updated at the moment",
       };
     }
 
     return {
-      connectionActivity: isOnline,
       statusCode: 200,
-      status: "good",
       message: "User wishlist updated successfully",
-      success: true,
-      data: processUserData(updatedUserCart).cart || [],
+      data: processUserData(updatedUserCart).wishList || [],
     };
   } catch (error) {
     throw new Error(

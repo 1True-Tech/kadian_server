@@ -19,7 +19,7 @@ export default async function myCartDelete(event) {
     };
   }
   try {
-    const user = await User.findById(token.data.userId).select(
+    const user = await User.findById(auth.userId).select(
       "-password -__v"
     );
 
@@ -34,7 +34,7 @@ export default async function myCartDelete(event) {
     }
 
     const clearedUserCartList = await User.findByIdAndUpdate(
-      token.data.userId,
+      auth.userId,
       { $set: { cart: [] } },
       { new: true }
     );
