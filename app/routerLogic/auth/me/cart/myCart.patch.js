@@ -51,7 +51,7 @@ export default async function myCartPatch(event) {
     const updateData = body.updateData; // updateData should be an array of items
 
     const updatedUserCart = await User.findByIdAndUpdate(
-      token.data.userId,
+      auth.userId,
       {
         $addToSet: {
           cart: {

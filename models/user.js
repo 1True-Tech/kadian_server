@@ -14,7 +14,6 @@ const UserSchema = new Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
     match: [
       /^[\w!#$%&'*+/=?`{|}~^.-]+@[\w.-]+\.[a-zA-Z]{2,}$/, // this is to validate if the email is following standard email format
       "Invalid email format",
