@@ -25,7 +25,7 @@ export default async function myCartDelete(event) {
 
     if (!user) {
       return {
-        connectionActivity: isOnline,
+        
         statusCode: 404,
         status: "bad",
         message: "User not found",
@@ -41,7 +41,7 @@ export default async function myCartDelete(event) {
 
     if (!clearedUserCartList) {
       return {
-        connectionActivity: isOnline,
+        
         statusCode: 500,
         status: "bad",
         message:
@@ -50,7 +50,7 @@ export default async function myCartDelete(event) {
       };
     }
     return {
-      connectionActivity: isOnline,
+      
       statusCode: 200,
       status: "good",
       message: "User cart cleared successfully",
