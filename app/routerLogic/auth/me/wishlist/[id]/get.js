@@ -25,9 +25,9 @@ export default async function get(event) {
     const user = await User.findOne(
       {
         _id: event.auth?.userId,
-        "wishlist._id": id,
+        "wishList._id": id,
       },
-      { "wishlist.$": 1 }
+      { "wishList.$": 1 }
     ).lean();
 
     // 5. Handle not found
