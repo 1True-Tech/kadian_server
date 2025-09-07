@@ -39,6 +39,7 @@ export default async function register(event) {
   // 2. Connect to MongoDB
   try {
     await connectDbUsers();
+
   } catch (error) {
     return {
       data: null,
@@ -50,6 +51,7 @@ export default async function register(event) {
 
   // 3. Check for existing user
   try {
+    await User.syncIndexes();
     const existingUser = await User.findOne({ email: body.email });
     if (existingUser) {
       return {
@@ -77,7 +79,7 @@ export default async function register(event) {
     return {
       data: authTokens,
 
-      statusCode: 200,
+      statusCode: 201,
       status: "good",
       message: "Registration successful",
     };

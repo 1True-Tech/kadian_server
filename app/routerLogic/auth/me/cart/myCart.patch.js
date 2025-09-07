@@ -20,9 +20,7 @@ export default async function myCartPatch(event) {
     };
   }
   try {
-    const user = await User.findById(auth.userId).select(
-      "-password -__v"
-    );
+    const user = await User.findById(auth.userId).select("-password -__v");
 
     if (!user) {
       return {
@@ -55,7 +53,7 @@ export default async function myCartPatch(event) {
     const updatedUserCart = await User.findByIdAndUpdate(
       token.data.userId,
       {
-        $push: {
+        $addToSet: {
           cart: {
             $each: Array.isArray(updateData) ? updateData : [updateData],
           },

@@ -55,8 +55,8 @@ export default async function myWishlistPatch(event) {
     const updatedUserCart = await User.findByIdAndUpdate(
       token.data.userId,
       {
-        $push: {
-          cart: {
+        $addToSet: {
+          wishList: {
             $each: Array.isArray(updateData) ? updateData : [updateData],
           },
         },

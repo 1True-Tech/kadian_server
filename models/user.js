@@ -42,7 +42,7 @@ const UserSchema = new Schema({
   addresses: [address], // embed addresses (one-to-few):contentReference[oaicite:13]{index=13}
   cart: [
     {
-      productId: { type: String, unique: true }, // Sanity product ID
+      productId: { type: String }, // Sanity product ID
       addedAt: { type: Date, default: Date.now },
       updatedAt: { type: Date, default: Date.now },
       quantity: { type: Number, default: 1 },
@@ -53,7 +53,7 @@ const UserSchema = new Schema({
 
   wishList: [
     {
-      productId: { type: String, unique: true }
+      productId: { type: String }
     },
   ],
   role: {
@@ -66,6 +66,7 @@ const UserSchema = new Schema({
   loginAttempts: { type: Number, default: 0 },
   lockUntil: Number,
 });
+UserSchema.index({ email: 1 }, { unique: true });
 
 // Pre-save: hash modified password
 UserSchema.pre("save", function (next) {
