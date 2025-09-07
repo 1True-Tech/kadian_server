@@ -24,7 +24,6 @@ export default async function myCartPatch(event) {
 
     if (!user) {
       return {
-        connectionActivity: isOnline,
         statusCode: 404,
         status: "bad",
         message: "User not found",
@@ -40,7 +39,6 @@ export default async function myCartPatch(event) {
 
     if (hasError || !body) {
       return {
-        connectionActivity: isOnline,
         statusCode: 401,
         status: "bad",
         message: "Update failed: " + errorMessage,
@@ -64,7 +62,7 @@ export default async function myCartPatch(event) {
 
     if (!updatedUserCart) {
       return {
-        connectionActivity: isOnline,
+        
         statusCode: 500,
         status: "bad",
         message: "something went wrong: user can't be updated at the moment",
@@ -73,7 +71,7 @@ export default async function myCartPatch(event) {
     }
 
     return {
-      connectionActivity: isOnline,
+      
       statusCode: 200,
       status: "good",
       message: "User data updated successfully",
