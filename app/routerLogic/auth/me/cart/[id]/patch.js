@@ -1,16 +1,15 @@
 import processUserData from "../../../../../../lib/data-processors/process-user-data.js";
-import flattenToDotNotation from "../../../../../../lib/utils/flatten-to-dot-notation.js";
 import connectDbUsers from "../../../../../../lib/utils/mongo/connect-db-users.js";
 import objectErrorBoundary from "../../../../../../lib/utils/objectErrorBoundary.js";
 import User from "../../../../../../models/user.js";
 
 /**
  *
- * @param {Omit<import("../../../../../../lib/utils/withErrorHandling.js").RouteEvent,'params'|'body'>&{params:{id:string},body:{data:{limit:number}}}} event
+ * @param {Omit<import("../../../../../../lib/utils/withErrorHandling.js").RouteEvent,'params'|'body'>&{params:{id:string},body:{data:{increment?:number, quantity?:number}}}} event
  * @returns {generalResponse & {data:WishlistItem}}
  */
 export default async function patch(event) {
-  // Connect to MongoDB
+  // 1. Connect to MongoDB
   try {
     await connectDbUsers();
   } catch (error) {
@@ -19,12 +18,13 @@ export default async function patch(event) {
       message: "Failed to connect to database while fetching user.",
     };
   }
+
   const { id } = event.params;
   const {
     object: body,
     hasError,
     errorMessage,
-  } = objectErrorBoundary(event.body, ["data", "data.limit"]);
+  } = objectErrorBoundary(event.body, ["data"]);
 
   if (hasError || !body) {
     return {
@@ -34,32 +34,57 @@ export default async function patch(event) {
     };
   }
 
-  // Validate limit value
-  if (typeof body.data.limit !== "number" || body.data.limit < 1) {
+  // 2. Validate input
+  if (
+    body.data.increment === undefined &&
+    body.data.quantity === undefined
+  ) {
     return {
       statusCode: 400,
-      message: "Bad request: Limit must be a positive number",
+      message: "Bad request: must provide either 'quantity' or 'increment'",
       success: false,
     };
   }
-  try {
-    // 5. Update cart item
-    const dotFields = flattenToDotNotation(body.data, "cart.$");
-    dotFields["cart.$.updatedAt"] = new Date();
 
+  if (body.data.quantity !== undefined && body.data.quantity < 1) {
+    return {
+      statusCode: 400,
+      message: "Bad request: quantity must be at least 1",
+      success: false,
+    };
+  }
+
+  try {
+    // 3. Build update query
+    let updateQuery;
+
+    if (body.data.increment !== undefined) {
+      updateQuery = {
+        $inc: { "cart.$.quantity": body.data.increment },
+        $set: { "cart.$.updatedAt": new Date() },
+      };
+    } else {
+      updateQuery = {
+        $set: {
+          "cart.$.quantity": body.data.quantity,
+          "cart.$.updatedAt": new Date(),
+        },
+      };
+    }
+
+    // 4. Execute update
     const updatedUserCart = await User.findOneAndUpdate(
       {
         _id: event.auth?.userId,
-        "cart._id": id,
+        "cart.productId": id,
       },
-      { $set: dotFields },
+      updateQuery,
       {
         new: true,
-        runValidators: true, // Ensure data validation
+        runValidators: true,
       }
     );
 
-    // 6. Handle update failure
     if (!updatedUserCart) {
       return {
         statusCode: 404,
@@ -68,7 +93,7 @@ export default async function patch(event) {
       };
     }
 
-    // 7. Parse and validate updated cart
+    // 5. Parse updated cart
     const updatedCart = processUserData(updatedUserCart).cart;
     if (!updatedCart || !Array.isArray(updatedCart)) {
       return {
@@ -78,7 +103,7 @@ export default async function patch(event) {
       };
     }
 
-    // 8. Return success response
+    // 6. Return success
     return {
       statusCode: 200,
       message: "Cart item updated successfully",
@@ -86,8 +111,8 @@ export default async function patch(event) {
       data: updatedCart,
     };
   } catch (error) {
-    // Handle specific database errors
-    console.log(error)
+    console.log(error);
+
     if (error instanceof Error) {
       if (error.name === "ValidationError") {
         return {
