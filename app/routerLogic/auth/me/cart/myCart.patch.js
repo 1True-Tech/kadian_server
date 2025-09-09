@@ -9,7 +9,7 @@ import User from "../../../../../models/user.js";
  */
 export default async function myCartPatch(event) {
   const auth = event.auth;
-  // Connect to MongoDB
+
   try {
     await connectDbUsers();
   } catch (error) {
@@ -19,6 +19,7 @@ export default async function myCartPatch(event) {
       message: "Failed to connect to database while fetching user.",
     };
   }
+
   try {
     const user = await User.findById(auth.userId).select("-password -__v");
 
@@ -46,41 +47,44 @@ export default async function myCartPatch(event) {
       };
     }
 
-    const updateData = body.updateData; // updateData should be an array of items
+    const updateData = Array.isArray(body.updateData)
+      ? body.updateData
+      : [body.updateData];
 
-    const updatedUserCart = await User.findByIdAndUpdate(
-      auth.userId,
-      {
-        $addToSet: {
-          cart: {
-            $each: Array.isArray(updateData) ? updateData : [updateData],
-          },
-        },
-      },
-      { new: true }
-    );
+    // Update logic
+    updateData.forEach((newItem) => {
+      const existingItem = user.cart.find(
+        (item) =>
+          item.productId === newItem.productId &&
+          item.variantSku === newItem.variantSku
+      );
 
-    if (!updatedUserCart) {
-      return {
-        
-        statusCode: 500,
-        status: "bad",
-        message: "something went wrong: user can't be updated at the moment",
-        success: false,
-      };
-    }
+      if (existingItem) {
+        // Update quantity and timestamp
+        existingItem.quantity += newItem.quantity;
+        existingItem.updatedAt = new Date();
+      } else {
+        // Add new item
+        user.cart.push({
+          ...newItem,
+          addedAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    });
+
+    const updatedUser = await user.save();
 
     return {
-      
       statusCode: 200,
       status: "good",
-      message: "User data updated successfully",
+      message: "User cart updated successfully",
       success: true,
-      data: processUserData(updatedUserCart).cart || [],
+      data: processUserData(updatedUser).cart || [],
     };
   } catch (error) {
     throw new Error(
-      `Failed to fetch user cart data: ${
+      `Failed to update user cart: ${
         error instanceof Error ? error.message : "Unknown error"
       }`
     );
