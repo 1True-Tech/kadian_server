@@ -2,8 +2,8 @@
 import fetchCustomerInfo from "../../../lib/utils/fetch-customer-info.js";
 import connectDbOrders from "../../../lib/utils/mongo/connect-db-orders.js";
 import objectErrorBoundary from "../../../lib/utils/objectErrorBoundary.js";
-import uploadToCloudinary from "../../../lib/utils/uploadtocloudinary.js";
 import Order from "../../../models/order.js";
+import Image from "../../../models/image.js";
 
 export async function post(event) {
   const baseUrl = event.req.protocol + "://" + event.req.get("host");
@@ -68,19 +68,24 @@ export async function post(event) {
 
   if (payment.method === "transfer" && payment.proofBase64) {
     try {
-      const proofResult = await uploadToCloudinary(
-        payment.proofBase64,
-        `order-${Date.now()}`
-      );
+      // Save image to MongoDB
+      const image = new Image({
+        filename: `payment-proof-${Date.now()}`,
+        data: payment.proofBase64,
+        mimetype: payment.proofBase64.split(';')[0].split(':')[1] || 'image/jpeg'
+      });
+      await image.save();
+
+      // Store the image reference in payment object
       paymentObj.proof = {
-        secureUrl: proofResult.secure_url,
-        publicId: proofResult.public_id,
+        imageId: image._id,
+        filename: image.filename
       };
     } catch (err) {
       return {
         statusCode: 500,
         status: "bad",
-        message: "Proof upload failed: " + err.message,
+        message: "Payment proof upload failed: " + err.message,
       };
     }
   }
@@ -102,6 +107,7 @@ export async function post(event) {
 
     for (const item of items) {
       const { sku, quantity, slug } = item;
+      console.log(`${baseUrl}/inventory/${slug}/${sku}/stock`)
       const inventoryStockUpdate = await fetch(
         `${baseUrl}/inventory/${slug}/${sku}/stock`,
         {
