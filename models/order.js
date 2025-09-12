@@ -5,7 +5,7 @@ import getDbConnection from "../lib/utils/mongo/get-db-connection.js";
 // --- Order Items ---
 const orderItemSchema = new Schema(
   {
-    sanityProductId: { type: String, required: true }, // Sanity product ID
+    productId: { type: String, required: true }, // Sanity product ID
     variantSku: { type: String, required: true },
     quantity: { type: Number, required: true, min: 1 },
     price: { type: Number, required: true }, // price per unit in kobo or cents
@@ -13,7 +13,7 @@ const orderItemSchema = new Schema(
   { _id: false }
 );
 
-// --- Payment (aligned with PaymentMethod) ---
+// --- Payment Schema ---
 const paymentSchema = new Schema(
   {
     method: {
@@ -29,8 +29,8 @@ const paymentSchema = new Schema(
       default: "initiated",
     },
     proof: {
-      secureUrl: { type: String, required: false }, // Cloudinary hosted URL
-      publicId: { type: String, required: false }, // Cloudinary reference ID
+      imageId: { type: Schema.Types.ObjectId, ref: 'Image', required: false }, // MongoDB Image reference
+      filename: { type: String, required: false }
     },
     paidAt: { type: Date },
   },

@@ -4,6 +4,33 @@ import connectDbOrders from "../../../lib/utils/mongo/connect-db-orders.js";
 import objectErrorBoundary from "../../../lib/utils/objectErrorBoundary.js";
 import Order from "../../../models/order.js";
 import Image from "../../../models/image.js";
+import User from "../../../models/user.js";
+import getDbConnection from "../../../lib/utils/mongo/get-db-connection.js";
+
+/**
+ * Remove ordered items from user's cart
+ * @param {string} userId - User ID
+ * @param {Array<{productId: string, variantSku: string}>} orderedItems - Items that were ordered
+ */
+async function removeFromCart(userId, orderedItems) {
+  try {
+    const user = await User.findById(userId);
+    if (!user || !user.cart) return;
+
+    // Filter out items that were ordered
+    user.cart = user.cart.filter(cartItem => 
+      !orderedItems.some(orderItem => 
+        orderItem.productId === cartItem.productId && 
+        orderItem.variantSku === cartItem.variantSku
+      )
+    );
+
+    await user.save();
+  } catch (err) {
+    console.error('Error removing items from cart:', err);
+    // Don't throw error as this is a secondary operation
+  }
+}
 
 export async function post(event) {
   const baseUrl = event.req.protocol + "://" + event.req.get("host");
@@ -48,6 +75,26 @@ export async function post(event) {
 
   const { items, shippingAddress, customerInfo, payment } = body;
 
+  // Validate items structure
+  if (!Array.isArray(items) || items.length === 0) {
+    return {
+      statusCode: 400,
+      status: "bad",
+      message: "Order must contain at least one item",
+    };
+  }
+
+  // Validate each item has required fields
+  for (const item of items) {
+    if (!item.productId || !item.variantSku || !item.quantity || !item.price) {
+      return {
+        statusCode: 400,
+        status: "bad",
+        message: "Each item must have productId, variantSku, quantity, and price",
+      };
+    }
+  }
+
   const customerInfoObj = await fetchCustomerInfo(
     isGuest,
     customerInfo,
@@ -65,37 +112,62 @@ export async function post(event) {
     amount: totalAmount,
     status: payment.method === "transfer" ? "pending" : "initiated",
   };
+  console.log(payment)
+  if (payment.method === "transfer") {
+    if(payment.proof){try {
+      // Connect to images database first
+      const imageConn = getDbConnection("images");
+      
+      // Extract the mimetype from the base64 string
+      const mimeMatch = payment.proof.match(/^data:([^;]+);base64,/);
+      const mimetype = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      
+      // Clean the base64 string (remove data:image/jpeg;base64, prefix)
+      const cleanBase64 = payment.proof.replace(/^data:([^;]+);base64,/, '');
 
-  if (payment.method === "transfer" && payment.proofBase64) {
-    try {
-      // Save image to MongoDB
+      // Create and save the image
       const image = new Image({
         filename: `payment-proof-${Date.now()}`,
-        data: payment.proofBase64,
-        mimetype: payment.proofBase64.split(';')[0].split(':')[1] || 'image/jpeg'
+        data: cleanBase64,
+        mimetype: mimetype
       });
-      await image.save();
+
+      // Explicitly wait for the save
+      const savedImage = await image.save();
+      console.log('Saved image:', savedImage._id); // Debug log
 
       // Store the image reference in payment object
       paymentObj.proof = {
-        imageId: image._id,
-        filename: image.filename
+        imageId: savedImage._id,
+        filename: savedImage.filename
       };
     } catch (err) {
+      console.error('Image save error:', err); // Debug log
       return {
         statusCode: 500,
         status: "bad",
         message: "Payment proof upload failed: " + err.message,
       };
+    }}else{
+      return {
+        statusCode: 400,
+        status: "bad",
+        message: "Payment proof file not available",
+      };
     }
   }
 
+  // Create the order object matching the schema
   const orderObj = {
     userId: isGuest ? null : userId,
     guestId: isGuest ? userId : null,
-    items,
+    items: items.map(item => ({
+      productId: item.productId,
+      variantSku: item.variantSku,
+      quantity: item.quantity,
+      price: item.price
+    })),
     shippingAddress,
-    totalAmount,
     status: "pending",
     customerInfo: customerInfoObj,
     payment: paymentObj,
@@ -105,11 +177,11 @@ export async function post(event) {
     await connectDbOrders();
     const order = new Order(orderObj);
 
+    // Update inventory for each item
     for (const item of items) {
-      const { sku, quantity, slug } = item;
-      console.log(`${baseUrl}/inventory/${slug}/${sku}/stock`)
+      const { variantSku, quantity, productId } = item;
       const inventoryStockUpdate = await fetch(
-        `${baseUrl}/inventory/${slug}/${sku}/stock`,
+        `${baseUrl}/inventory/${productId}/${variantSku}/stock`,
         {
           method: "PATCH",
           body: JSON.stringify({ delta: -quantity }),
@@ -122,12 +194,18 @@ export async function post(event) {
         inventoryStockUpdate.statusCode !== 200
       ) {
         throw new Error(
-          `Failed to update stock for SKU ${sku}: ${inventoryStockUpdate.message}`
+          `Failed to update stock for SKU ${variantSku}: ${inventoryStockUpdate.message}`
         );
       }
     }
 
     await order.save();
+
+    // Remove ordered items from user's cart if not a guest
+    if (!isGuest) {
+      await removeFromCart(userId, items);
+    }
+
     return {
       status: "good",
       statusCode: 201,
