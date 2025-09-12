@@ -18,6 +18,7 @@ import { homeLogic } from "./routerLogic/home.js";
 import { healthLogic } from "./routerLogic/index.js";
 import inventory from "./routerLogic/inventory/index.js";
 import orders from "./routerLogic/orders/index.js";
+import admin from "./routerLogic/admin/index.js";
 
 // App setup
 const app = express();
@@ -154,70 +155,40 @@ router({
   handler: withErrorHandling(auth.me.wishlist.wishListItem.deleteItem, { requireAuth: true }),
 });
 
-// orders
-router({
-  method: "get",
-  path: "/orders",
-  handler: withErrorHandling(orders.get, {requireAuth:true,allowedRoles:["admin"]}),
-});
+// Public order routes
 router({
   method: "get",
   path: "/orders-by-user",
   handler: withErrorHandling(orders.getByUser, { requireAuth: true }),
 });
-
 router({
   method: "post",
   path: "/orders",
   handler: withErrorHandling(orders.post, { requireAuth: true }),
 });
-// orders-item
 router({
   method: "get",
   path: "/orders/:id",
   handler: withErrorHandling(orders.orderItem.getOrder, { requireAuth: true }),
 });
 router({
-  method: "patch",
-  path: "/orders/:id",
-  handler: withErrorHandling(orders.orderItem.updateOrder, {requireAuth:true,allowedRoles:["admin"]}),
-});
-
-router({
   method: "delete",
   path: "/orders/:id/cancel",
   handler: withErrorHandling(orders.orderItem.deleteOrder, { requireAuth: true }),
 });
-router({
-  method: "delete",
-  path: "/orders/:id",
-  handler: withErrorHandling(orders.orderItem.permanentlyDeleteOrder, {requireAuth:true,allowedRoles:["admin"]}),
-});
 
-// inventory
 
+// Public inventory routes
 router({
   method: "get",
   path: "/inventory",
   handler: withErrorHandling(inventory.get),
 });
 router({
-  method: "post",
-  path: "/inventory/_refresh",
-  handler: withErrorHandling(inventory.refreshInventory, {requireAuth:true,allowedRoles:["admin"]}),
-});
-// inventory-item
-router({
   method: "get",
   path: "/inventory/:productId",
   handler: withErrorHandling(inventory.inventoryItem.get),
 });
-router({
-  method: "patch",
-  path: "/inventory/:productId",
-  handler: withErrorHandling(inventory.inventoryItem.patch, {requireAuth:true,allowedRoles:["admin"]}),
-});
-// inventory-item-sku
 router({
   method: "get",
   path: "/inventory/:productId/:sku",
@@ -227,6 +198,11 @@ router({
   method: "patch",
   path: "/inventory/:productId/:sku/stock",
   handler: withErrorHandling(inventory.inventoryItem.inventoryItemSku.stockUpdate),
+});
+router({
+  method: "get",
+  path: "/admin/dashboard",
+  handler: withErrorHandling(admin.dashboard.getStats, { requireAuth: true, allowedRoles:["admin"] }),
 });
 
 

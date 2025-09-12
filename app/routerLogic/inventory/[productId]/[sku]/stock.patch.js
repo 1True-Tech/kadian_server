@@ -36,7 +36,6 @@ export default async function stockUpdate(event) {
       },
     },
   });
-  console.log( event.params)
 
 
   if (!body || hasError) {

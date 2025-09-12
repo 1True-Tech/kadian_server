@@ -432,6 +432,125 @@
           "roles": ["user", "admin"],
           "description": "Get image by ID with full data"
         }
+      },
+      "admin": {
+        "users": {
+          "list": {
+            "method": "GET",
+            "path": "/admin/users",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Get all users with pagination and filtering",
+            "query_params": {
+              "page": "number - Page number (default: 1)",
+              "limit": "number - Items per page (default: 10)",
+              "role": "string - Filter by user role",
+              "query": "string - Search in name and email"
+            }
+          },
+          "update": {
+            "method": "PATCH",
+            "path": "/admin/users/:id",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Update user details or role",
+            "protected_fields": [
+              "password",
+              "resetPasswordTokenHash",
+              "resetPasswordExpires"
+            ]
+          }
+        },
+        "images": {
+          "list": {
+            "method": "GET",
+            "path": "/admin/images",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Get all images with pagination",
+            "query_params": {
+              "page": "number - Page number (default: 1)",
+              "limit": "number - Items per page (default: 20)",
+              "type": "string - Filter by mimetype"
+            }
+          },
+          "delete": {
+            "method": "DELETE",
+            "path": "/admin/images/:id",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Delete an image and remove from associated resources"
+          }
+        },
+        "orders": {
+          "list": {
+            "method": "GET",
+            "path": "/admin/orders",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Get all orders with advanced filtering",
+            "query_params": {
+              "page": "number - Page number (default: 1)",
+              "limit": "number - Items per page (default: 10)",
+              "status": "string - Filter by order status",
+              "startDate": "date - Filter by start date",
+              "endDate": "date - Filter by end date",
+              "paymentMethod": "string - Filter by payment method",
+              "minAmount": "number - Minimum order amount",
+              "maxAmount": "number - Maximum order amount"
+            }
+          },
+          "update": {
+            "method": "PATCH",
+            "path": "/admin/orders/:id",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Update order status and details",
+            "protected_fields": ["userId", "guestId", "_id"]
+          },
+          "delete": {
+            "method": "DELETE",
+            "path": "/admin/orders/:id",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Delete order and associated resources"
+          }
+        },
+        "inventory": {
+          "stats": {
+            "method": "GET",
+            "path": "/admin/inventory",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Get inventory statistics and status",
+            "query_params": {
+              "threshold": "number - Low stock threshold (default: 10)"
+            },
+            "response": {
+              "lowStock": "Array of items below threshold",
+              "stockValue": {
+                "totalValue": "Total value of inventory",
+                "totalItems": "Total number of items"
+              },
+              "productCount": "Total number of products",
+              "recentUpdates": "Last 5 updated products"
+            }
+          },
+          "update": {
+            "method": "PATCH",
+            "path": "/admin/inventory/:id",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Update inventory details"
+          },
+          "bulkUpdate": {
+            "method": "POST",
+            "path": "/admin/inventory",
+            "requiresAuth": true,
+            "roles": ["admin"],
+            "description": "Bulk update inventory items"
+          }
+        }
       }
     },
     "error_responses": {
