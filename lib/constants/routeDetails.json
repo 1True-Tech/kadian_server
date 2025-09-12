@@ -320,347 +320,117 @@
           }
         }
       },
-      "order_management": {
-        "get_all_orders": {
+      "orders_management": {
+        "list": {
           "method": "GET",
           "path": "/orders",
-          "auth_required": true,
-          "allowed_roles": ["admin"],
-          "description": "Get all orders in the system (admin only)",
-          "response_success": {
-            "status": "good",
-            "statusCode": 200,
-            "orders": [
-              {
-                "_id": "string - Order ID",
-                "userId": "string - User ID (null for guest orders)",
-                "guestId": "string - Guest ID (null for user orders)",
-                "status": "string - pending, paid, shipped, completed, cancelled",
-                "items": [
-                  {
-                    "sanityProductId": "string - Sanity product ID",
-                    "variantSku": "string - Product variant SKU",
-                    "quantity": "number - Item quantity",
-                    "price": "number - Price per unit"
-                  }
-                ],
-                "shippingAddress": {
-                  "line1": "string - Address line 1",
-                  "line2": "string - Address line 2",
-                  "city": "string - City",
-                  "state": "string - State",
-                  "postal": "string - Postal code",
-                  "country": "string - Country"
-                },
-                "customerInfo": {
-                  "name": {
-                    "first": "string - First name",
-                    "last": "string - Last name"
-                  },
-                  "email": "string - Email address",
-                  "phone": "string - Phone number"
-                },
-                "createdAt": "string - ISO date",
-                "updatedAt": "string - ISO date"
-              }
-            ]
-          }
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Get all orders"
         },
-        "get_user_orders": {
-          "method": "GET",
-          "path": "/orders-by-user",
-          "auth_required": true,
-          "description": "Get orders for authenticated user (admins can specify userId in query)",
-          "query_params": {
-            "userId": "string (optional) - User ID (admin only, defaults to authenticated user)"
-          },
-          "response_success": {
-            "status": "good",
-            "statusCode": 200,
-            "orders": "array - Same structure as get_all_orders"
-          }
-        },
-        "create_order": {
+        "create": {
           "method": "POST",
           "path": "/orders",
-          "auth_required": true,
+          "requiresAuth": true,
+          "roles": ["user", "guest"],
           "description": "Create a new order",
-          "body_structure": {
-            "items": [
-              {
-                "sanityProductId": "string (required) - Sanity product ID",
-                "variantSku": "string (required) - Product variant SKU",
-                "quantity": "number (required) - Item quantity (min: 1)",
-                "price": "number (required) - Price per unit in cents/kobo",
-                "slug": "string (required) - Product slug for inventory update"
-              }
-            ],
-            "shippingAddress": {
-              "line1": "string (required) - Address line 1",
-              "line2": "string (optional) - Address line 2",
-              "city": "string (required) - City",
-              "state": "string (required) - State",
-              "postal": "string (required) - Postal code",
-              "country": "string (required) - Country"
-            },
-            "customerInfo": {
-              "name": {
-                "first": "string (required for guests) - First name",
-                "last": "string (required for guests) - Last name"
-              },
-              "email": "string (required for guests) - Email address",
-              "phone": "string (optional) - Phone number"
-            }
-          },
-          "example_request": {
-            "items": [
-              {
-                "sanityProductId": "prod_123",
-                "variantSku": "SKU_001",
-                "quantity": 2,
-                "price": 2999,
-                "slug": "product-slug"
-              }
-            ],
-            "shippingAddress": {
-              "line1": "123 Main St",
-              "line2": "Apt 4B",
-              "city": "New York",
-              "state": "NY",
-              "postal": "10001",
-              "country": "USA"
-            },
-            "customerInfo": {
-              "name": {
-                "first": "John",
-                "last": "Doe"
-              },
-              "email": "john@example.com",
-              "phone": "+1234567890"
-            }
-          },
-          "response_success": {
-            "status": "good",
-            "statusCode": 201,
-            "message": "Order created successfully.",
-            "data": {
-              "orderId": "string - Order ID",
-              "statusValue": "string - Order status"
+          "image_handling": {
+            "payment_proof": {
+              "storage": "mongodb",
+              "format": "base64",
+              "types": ["image/jpeg", "image/png"],
+              "max_size": "5MB"
             }
           }
         },
-        "get_order": {
+        "getById": {
           "method": "GET",
           "path": "/orders/:id",
-          "auth_required": true,
-          "description": "Get specific order details",
-          "path_params": {
-            "id": "string (required) - Order ID"
-          },
-          "response_success": {
-            "status": "good",
-            "statusCode": 200,
-            "data": "object - Same structure as order in get_all_orders"
-          }
+          "requiresAuth": true,
+          "roles": ["user", "admin"],
+          "description": "Get order details"
         },
-        "update_order": {
+        "update": {
           "method": "PATCH",
           "path": "/orders/:id",
-          "auth_required": true,
-          "allowed_roles": ["admin"],
-          "description": "Update order status (admin only)",
-          "path_params": {
-            "id": "string (required) - Order ID"
-          },
-          "body_structure": {
-            "status": "string (optional) - New status: pending, paid, shipped, completed, cancelled"
-          },
-          "example_request": {
-            "status": "shipped"
-          }
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Update order status"
         },
-        "cancel_order": {
-          "method": "DELETE",
-          "path": "/orders/:id/cancel",
-          "auth_required": true,
-          "description": "Cancel an order (sets status to cancelled)",
-          "path_params": {
-            "id": "string (required) - Order ID"
-          }
-        },
-        "delete_order": {
+        "cancel": {
           "method": "DELETE",
           "path": "/orders/:id",
-          "auth_required": true,
-          "allowed_roles": ["admin"],
-          "description": "Permanently delete an order (admin only)",
-          "path_params": {
-            "id": "string (required) - Order ID"
-          }
+          "requiresAuth": true,
+          "roles": ["user"],
+          "description": "Cancel order (marks as cancelled)",
+          "restrictions": "Within 4 days of creation"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/orders/:id/permanent",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Permanently delete order",
+          "restrictions": "Within 4 days of creation"
         }
       },
       "inventory_management": {
-        "get_inventory": {
+        "list": {
           "method": "GET",
           "path": "/inventory",
-          "auth_required": false,
-          "description": "Get all inventory items",
-          "response_success": {
-            "status": "good",
-            "statusCode": 200,
-            "data": [
-              {
-                "_id": "string - Inventory ID",
-                "sanityProductId": "string - Sanity product ID",
-                "label": "string - Product name",
-                "slug": "string - Product slug",
-                "variants": [
-                  {
-                    "_id": "string - Variant ID",
-                    "sku": "string - Stock keeping unit",
-                    "stock": "number - Total stock",
-                    "currentStock": "number - Available stock",
-                    "stockThreshold": "number - Low stock threshold",
-                    "price": "number - Price in cents/kobo"
-                  }
-                ],
-                "createdAt": "string - ISO date",
-                "updatedAt": "string - ISO date"
-              }
-            ]
-          }
+          "requiresAuth": false,
+          "roles": ["guest"],
+          "description": "Get all inventory items"
         },
-        "refresh_inventory": {
-          "method": "POST",
-          "path": "/inventory/_refresh",
-          "auth_required": true,
-          "allowed_roles": ["admin"],
-          "description": "Refresh inventory data from external source (admin only)",
-          "query_params": {
-            "refreshType": "string (optional) - 'new' (default) or 'full'"
-          },
-          "body_structure": {
-            "data": [
-              {
-                "id": "string (required) - Sanity product ID",
-                "slug": "string (required) - Product slug",
-                "name": "string (optional) - Product name",
-                "variants": [
-                  {
-                    "sku": "string (required) - Stock keeping unit",
-                    "stock": "number (optional) - Total stock",
-                    "stockThreshold": "number (optional) - Low stock threshold",
-                    "price": "number (optional) - Price in cents/kobo"
-                  }
-                ],
-                "createdAt": "string (optional) - ISO date",
-                "updatedAt": "string (optional) - ISO date"
-              }
-            ]
-          },
-          "example_request": {
-            "data": [
-              {
-                "id": "prod_123",
-                "slug": "awesome-product",
-                "name": "Awesome Product",
-                "variants": [
-                  {
-                    "sku": "SKU_001",
-                    "stock": 100,
-                    "stockThreshold": 10,
-                    "price": 2999
-                  }
-                ]
-              }
-            ]
-          }
-        },
-        "get_product": {
+        "getById": {
           "method": "GET",
           "path": "/inventory/:productId",
-          "auth_required": false,
-          "description": "Get specific product inventory",
-          "path_params": {
-            "productId": "string (required) - Sanity product ID"
-          },
-          "response_success": {
-            "status": "good",
-            "statusCode": 200,
-            "data": "object - Same structure as single item in get_inventory"
-          }
+          "requiresAuth": false,
+          "roles": ["guest"],
+          "description": "Get product details"
         },
-        "update_product": {
-          "method": "PATCH",
-          "path": "/inventory/:productId",
-          "auth_required": true,
-          "allowed_roles": ["admin"],
-          "description": "Update product information (admin only)",
-          "path_params": {
-            "productId": "string (required) - Sanity product ID"
-          },
-          "body_structure": {
-            "label": "string (optional) - Product name",
-            "slug": "string (optional) - Product slug",
-            "variants": [
-              {
-                "sku": "string (required) - Stock keeping unit",
-                "stock": "number (optional) - Total stock",
-                "currentStock": "number (optional) - Available stock",
-                "stockThreshold": "number (optional) - Low stock threshold",
-                "price": "number (optional) - Price in cents/kobo"
-              }
-            ]
-          }
-        },
-        "get_product_variant": {
-          "method": "GET",
-          "path": "/inventory/:productId/:sku",
-          "auth_required": false,
-          "description": "Get specific product variant",
-          "path_params": {
-            "productId": "string (required) - Sanity product ID",
-            "sku": "string (required) - Stock keeping unit"
-          },
-          "response_success": {
-            "status": "good",
-            "statusCode": 200,
-            "data": {
-              "_id": "string - Variant ID",
-              "sku": "string - Stock keeping unit",
-              "stock": "number - Total stock",
-              "currentStock": "number - Available stock",
-              "stockThreshold": "number - Low stock threshold",
-              "price": "number - Price in cents/kobo"
-            }
-          }
-        },
-        "update_stock": {
+        "update": {
           "method": "PATCH",
           "path": "/inventory/:productId/:sku/stock",
-          "auth_required": true,
-          "allowed_roles": ["admin"],
-          "description": "Update stock for specific variant (admin only)",
-          "path_params": {
-            "productId": "string (required) - Sanity product ID",
-            "sku": "string (required) - Stock keeping unit"
-          },
-          "body_structure": {
-            "delta": "number (required) - Stock change amount (positive to add, negative to subtract)"
-          },
-          "example_request": {
-            "delta": -5
-          },
-          "response_success": {
-            "status": "good",
-            "statusCode": 200,
-            "message": "Stock updated successfully",
-            "data": {
-              "previousStock": "number - Stock before update",
-              "newStock": "number - Stock after update",
-              "delta": "number - Change amount"
-            }
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Update product stock"
+        },
+        "refresh": {
+          "method": "POST",
+          "path": "/inventory/_refresh",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Refresh inventory from external source"
+        }
+      },
+      "images_management": {
+        "upload": {
+          "method": "POST",
+          "path": "/images",
+          "requiresAuth": true,
+          "roles": ["user", "admin"],
+          "description": "Upload an image",
+          "storage": {
+            "type": "mongodb",
+            "format": "base64",
+            "mimeTypes": ["image/jpeg", "image/png"],
+            "maxSize": "5MB"
           }
+        },
+        "list": {
+          "method": "GET",
+          "path": "/images",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Get all images metadata"
+        },
+        "getById": {
+          "method": "GET",
+          "path": "/images/:id",
+          "requiresAuth": true,
+          "roles": ["user", "admin"],
+          "description": "Get image by ID with full data"
         }
       }
     },
