@@ -1,6 +1,6 @@
 /**
  * @typedef {Object} LoginBody
- * @property {string} email
+ * @property {string} username
  * @property {string} password
  */
 
@@ -18,7 +18,7 @@ export default async function login(event) {
     object: body,
     hasError,
     errorMessage,
-  } = objectErrorBoundary(event.body, ["email", "password"], {
+  } = objectErrorBoundary(event.body, ["username", "password"], {
     label: "Body",
   });
 
@@ -44,14 +44,14 @@ export default async function login(event) {
   // 3. Find and validate user
 
   try {
-    const existingUser = await User.findOne({ email: body.email }).select(
+    const existingUser = await User.findOne({ username: { $eq: body.username } }).select(
       "+password"
     );
     if (!existingUser) {
       return {
         data: null,
         statusCode: 401,
-        message: "Invalid email",
+        message: "Invalid username",
       };
     }
 

@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 
-//mongoose.connect("mongodb://kdiannicely:kISXm$%^N62d^C75c16%@localhost/kadiannicely");
 mongoose.connect("mongodb://localhost/kadiannicely");
 const dbase = mongoose.connection;
 
@@ -9,7 +8,7 @@ dbase.once("open", () => {
     console.log("Connected to MongoDB database.");
 });
 
-const articleSchema = new mongoose.Schema({ // These can be press releases or announcements of new product launches. They are great for SEO because they increase the text-to-html ratio.
+const articleSchema = new mongoose.Schema({ //These can be press releases or announcements of new product launches. They are great for SEO because they increase the text-to-html ratio.
     Title: String,
     MetaDescription: String, //Used for both the meta description and excerpt if any.
     Body: String,
@@ -27,6 +26,11 @@ const productSchema = new mongoose.Schema({
     ProductImage: String,
     ProductCategory: String,
     Stock: Number,
+    minStock: Number,
+    maxStock: Number,
+    minPrice: Number,
+    maxPrice: Number,
+    lowStockThreshold: Number,
     DateAdded: Date
 });
 
