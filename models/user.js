@@ -60,6 +60,10 @@ const UserSchema = new Schema({
     enum: ["user", "admin"],
     default: "user",
   },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
   resetPasswordTokenHash: String,
   resetPasswordExpires: Date,
   loginAttempts: { type: Number, default: 0 },
@@ -92,7 +96,7 @@ UserSchema.methods.generateAuthToken = function () {
   if (!JWT_ACCESS_SECRET || !JWT_REFRESH_SECRET)
     throw new Error("JWT_ACCESS_SECRET or JWT_REFRESH_SECRET not set");
   const access = jwt.sign(
-    { userId: this._id.toString() }, // you can add other payload items to this as well, maybe role or so
+    { userId: this._id.toString(), role:this.role }, // you can add other payload items to this as well, maybe role or so
     JWT_ACCESS_SECRET,
     {
       expiresIn: TOKEN_EXPIRY,

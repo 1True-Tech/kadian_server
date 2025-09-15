@@ -205,6 +205,38 @@ router({
   handler: withErrorHandling(admin.dashboard.getStats, { requireAuth: true, allowedRoles:["admin"] }),
 });
 
+// Admin user management routes
+router({
+  method: "get",
+  path: "/users",
+  handler: withErrorHandling(admin.users.list, { requireAuth: true, allowedRoles: ["admin"] }),
+});
+
+router({
+  method: "get",
+  path: "/users/:userId",
+  handler: withErrorHandling(admin.users.getDetails, { requireAuth: true, allowedRoles: ["admin"] }),
+});
+
+router({
+  method: "patch",
+  path: "/users/:userId/role",
+  handler: withErrorHandling(admin.users.updateRole, { requireAuth: true, allowedRoles: ["admin"] }),
+});
+
+router({
+  method: "delete",
+  path: "/users/:userId",
+  handler: withErrorHandling(admin.users.delete, { requireAuth: true, allowedRoles: ["admin"] }),
+});
+
+// admin orders route
+router({
+  method: "get",
+  path: "/orders",
+  handler: withErrorHandling(orders.get, { requireAuth: true, allowedRoles: ["admin"] }),
+});
+
 
 // Starting the server
 app.listen(PORT, () => {
