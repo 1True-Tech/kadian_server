@@ -121,15 +121,7 @@ async function calculateMetricsForRange(timeRange, baseUrl, event) {
     };
 
     // Get data in parallel using base routes
-    const usersRes = await fetch(`${baseUrl}/users`, { headers }).then(
-      async (res) => {
-        if (!res.ok) throw new Error(`Users API returned status ${res.status}`);
-        const data = await res.json();
-        if (!data || !data.data)
-          throw new Error("Invalid users response format");
-        return data;
-      }
-    );
+    const usersRes = await (await fetch(`${baseUrl}/users`, { headers })).json();
     const ordersRes = await fetch(`${baseUrl}/orders`, { headers }).then(
       async (res) => {
         if (!res.ok)
