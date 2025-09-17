@@ -115,15 +115,12 @@ async function calculateMetricsForRange(timeRange, baseUrl, event) {
   try {
     const { start, end } = timeRange;
     const headers = {
-      authorization: "Bearer " + event.auth.token,
+      Authorization: "Bearer " + event.auth.token,
       "Content-Type": "application/json",
     };
 
     // Get data in parallel using base routes
-    const usersRes = await fetch(`${baseUrl}/users`, { headers:{
-      authorization: `Bearer ${event.auth.token}`,
-      "Content-Type": "application/json",
-    } }).then(
+    const usersRes = await fetch(`${baseUrl}/users`, { headers }).then(
       async (res) => {
         console.log(res)
         if (!res.ok) throw new Error(`Users API returned status ${res.status}`);
@@ -312,7 +309,7 @@ async function calculateStats(period = "month", event) {
     // Get current product count from inventory API
     const inventoryRes = await fetch(`${baseUrl}/inventory`, {
       headers: {
-        authorization: "Bearer " + event.auth.token,
+        Authorization: "Bearer " + event.auth.token,
         "Content-Type": "application/json",
       },
     }).then(async (res) => {
