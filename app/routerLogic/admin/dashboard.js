@@ -1,3 +1,4 @@
+import env from "../../../lib/constants/env.js";
 import useCache from "../../../lib/utils/use-cache.js";
 
 /**
@@ -120,7 +121,6 @@ async function calculateMetricsForRange(timeRange, baseUrl, event) {
     };
 
     // Get data in parallel using base routes
-    console.log(baseUrl)
     const usersRes = await fetch(`${baseUrl}/users`, { headers }).then(
       async (res) => {
         if (!res.ok) throw new Error(`Users API returned status ${res.status}`);
@@ -289,7 +289,7 @@ async function getTopUsers(orders) {
  */
 async function calculateStats(period = "month", event) {
   try {
-    const baseUrl = event.req.protocol + "://" + event.req.get("host");
+    const baseUrl = env.ALLOWEDDOMAIN;
     const ranges = getDateRanges(period);
     const current = await calculateMetricsForRange(
       ranges.current,
