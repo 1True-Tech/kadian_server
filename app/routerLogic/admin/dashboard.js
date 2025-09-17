@@ -120,6 +120,7 @@ async function calculateMetricsForRange(timeRange, baseUrl, event) {
     };
 
     // Get data in parallel using base routes
+    console.log(headers)
     const usersRes = await fetch(`${baseUrl}/users`, { headers }).then(
       async (res) => {
         if (!res.ok) throw new Error(`Users API returned status ${res.status}`);
