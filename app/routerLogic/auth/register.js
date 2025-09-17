@@ -1,5 +1,6 @@
 /**
  * @typedef {Object} RegisterBody
+ * @property {string} username
  * @property {string} email
  * @property {string} password
  * @property {{first:string; last:string}} name
@@ -21,7 +22,7 @@ export default async function register(event) {
     errorMessage,
   } = objectErrorBoundary(
     event.body,
-    ["email", "password", "name", "name.first", "name.last"],
+    ["username", "password", "email", "name", "name.first", "name.last"],
     {
       label: "Body",
     }
@@ -51,21 +52,22 @@ export default async function register(event) {
 
   // 3. Check for existing user
   try {
+    const existingUser = await User.findOne({ username: { $eq: body.username } });
     await User.syncIndexes();
-    const existingUser = await User.findOne({ email: body.email });
     if (existingUser) {
       return {
         data: null,
         statusCode: 409,
         status: "bad",
-        message: "Registration failed: Email already registered",
+        message: "Registration failed: Username already registered",
       };
     }
 
     // 4. Create new user
     const newUser = new User({
-      email: body.email,
+      username: body.username,
       password: body.password,
+      email: body.email,
       name: {
         first: body.name?.first,
         last: body.name?.last,
