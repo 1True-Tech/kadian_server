@@ -1,20 +1,40 @@
 /// <reference path="../../../types/order.js" />
-import Order from "../../../models/order.js";
-import env from "../../../lib/constants/env.js";
-import objectErrorBoundary from "../../../lib/utils/objectErrorBoundary.js";
-import connectDbOrders from "../../../lib/utils/mongo/connect-db-orders.js";
 import fetchCustomerInfo from "../../../lib/utils/fetch-customer-info.js";
+import connectDbOrders from "../../../lib/utils/mongo/connect-db-orders.js";
+import objectErrorBoundary from "../../../lib/utils/objectErrorBoundary.js";
+import Order from "../../../models/order.js";
+import Image from "../../../models/image.js";
+import User from "../../../models/user.js";
+import getDbConnection from "../../../lib/utils/mongo/get-db-connection.js";
 
 /**
- * Create a new order
- * @param {Omit<import("../../../lib/utils/withErrorHandling").RouteEvent, 'body'> & {
- *   body: CreateOrderBody
- * }} event - The route event object
- * @returns {Promise<import('../../../types/api.js').generalResponse & {
- *   data?: OrderCreateResponse
- * }>}
+ * Remove ordered items from user's cart
+ * @param {string} userId - User ID
+ * @param {Array<{productId: string, variantSku: string}>} orderedItems - Items that were ordered
  */
+async function removeFromCart(userId, orderedItems) {
+  try {
+    const user = await User.findById(userId);
+    if (!user || !user.cart) return;
+
+    // Filter out items that were ordered
+    user.cart = user.cart.filter(cartItem => 
+      !orderedItems.some(orderItem => 
+        orderItem.productId === cartItem.productId && 
+        orderItem.variantSku === cartItem.variantSku
+      )
+    );
+
+    await user.save();
+  } catch (err) {
+    console.error('Error removing items from cart:', err);
+    // Don't throw error as this is a secondary operation
+  }
+}
+
 export async function post(event) {
+  const baseUrl = event.req.protocol + "://" + event.req.get("host");
+
   const auth = event.auth;
   if (!auth) {
     return {
@@ -24,24 +44,19 @@ export async function post(event) {
     };
   }
   const { userId, userRole } = auth;
-
   const isGuest = !userRole || userRole === "guest";
 
-  const {
-    object: body,
-    hasError,
-    errorMessage,
-  } = objectErrorBoundary(
+  const { object: body, hasError, errorMessage } = objectErrorBoundary(
     event.body,
     [
       "items",
       "shippingAddress",
+      "payment.method",
       ...(isGuest
         ? [
             "customerInfo",
             "customerInfo.name.first",
             "customerInfo.name.last",
-            "customerInfo.name",
             "customerInfo.phone",
             "customerInfo.email",
           ]
@@ -52,49 +67,125 @@ export async function post(event) {
 
   if (hasError || !body) {
     return {
-      statusCode: 401,
+      statusCode: 400,
       status: "bad",
-      message: "Update failed: " + errorMessage,
+      message: "Validation failed: " + errorMessage,
     };
   }
 
-  const { items, shippingAddress, customerInfo } = body;
+  const { items, shippingAddress, customerInfo, payment } = body;
+
+  // Validate items structure
+  if (!Array.isArray(items) || items.length === 0) {
+    return {
+      statusCode: 400,
+      status: "bad",
+      message: "Order must contain at least one item",
+    };
+  }
+
+  // Validate each item has required fields
+  for (const item of items) {
+    if (!item.productId || !item.variantSku || !item.quantity || !item.price) {
+      return {
+        statusCode: 400,
+        status: "bad",
+        message: "Each item must have productId, variantSku, quantity, and price",
+      };
+    }
+  }
+
   const customerInfoObj = await fetchCustomerInfo(
     isGuest,
     customerInfo,
-    event.auth?.token || ""
+    event.auth?.token || "",
+    baseUrl
   );
 
   const totalAmount = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+
+  const paymentObj = {
+    method: payment.method,
+    amount: totalAmount,
+    status: payment.method === "transfer" ? "pending" : "initiated",
+  };
+  console.log(payment)
+  if (payment.method === "transfer") {
+    if(payment.proof){try {
+      // Connect to images database first
+      const imageConn = getDbConnection("images");
+      
+      // Extract the mimetype from the base64 string
+      const mimeMatch = payment.proof.match(/^data:([^;]+);base64,/);
+      const mimetype = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      
+      // Clean the base64 string (remove data:image/jpeg;base64, prefix)
+      const cleanBase64 = payment.proof.replace(/^data:([^;]+);base64,/, '');
+
+      // Create and save the image
+      const image = new Image({
+        filename: `payment-proof-${Date.now()}`,
+        data: cleanBase64,
+        mimetype: mimetype
+      });
+
+      // Explicitly wait for the save
+      const savedImage = await image.save();
+      console.log('Saved image:', savedImage._id); // Debug log
+
+      // Store the image reference in payment object
+      paymentObj.proof = {
+        imageId: savedImage._id,
+        filename: savedImage.filename
+      };
+    } catch (err) {
+      console.error('Image save error:', err); // Debug log
+      return {
+        statusCode: 500,
+        status: "bad",
+        message: "Payment proof upload failed: " + err.message,
+      };
+    }}else{
+      return {
+        statusCode: 400,
+        status: "bad",
+        message: "Payment proof file not available",
+      };
+    }
+  }
+
+  // Create the order object matching the schema
   const orderObj = {
     userId: isGuest ? null : userId,
     guestId: isGuest ? userId : null,
-    items,
+    items: items.map(item => ({
+      productId: item.productId,
+      variantSku: item.variantSku,
+      quantity: item.quantity,
+      price: item.price
+    })),
     shippingAddress,
-    totalAmount,
     status: "pending",
     customerInfo: customerInfoObj,
+    payment: paymentObj,
   };
 
   try {
     await connectDbOrders();
     const order = new Order(orderObj);
 
-    // update stock for each item before saving the order
+    // Update inventory for each item
     for (const item of items) {
-      const { sku, quantity, slug } = item;
-
+      const { variantSku, quantity, productId } = item;
       const inventoryStockUpdate = await fetch(
-        `${env.baseUrl}/inventory/${slug}/${sku}/stock`,
+        `${baseUrl}/inventory/${productId}/${variantSku}/stock`,
         {
           method: "PATCH",
           body: JSON.stringify({ delta: -quantity }),
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
         }
       ).then((res) => res.json());
 
@@ -103,11 +194,18 @@ export async function post(event) {
         inventoryStockUpdate.statusCode !== 200
       ) {
         throw new Error(
-          `Failed to update stock for SKU ${sku}: ${inventoryStockUpdate.message}`
+          `Failed to update stock for SKU ${variantSku}: ${inventoryStockUpdate.message}`
         );
       }
     }
+
     await order.save();
+
+    // Remove ordered items from user's cart if not a guest
+    if (!isGuest) {
+      await removeFromCart(userId, items);
+    }
+
     return {
       status: "good",
       statusCode: 201,
@@ -115,6 +213,7 @@ export async function post(event) {
       data: {
         orderId: order._id.toString(),
         statusValue: order.status,
+        payment: order.payment,
       },
     };
   } catch (err) {

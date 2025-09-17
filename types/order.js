@@ -70,10 +70,22 @@
  */
 
 /**
+ * @typedef {"card" | "transfer" | "delivery"} PaymentMethod
+ */
+
+/**
+ * @typedef {Object} TransferInfo
+ * @property {string} name - Payer's bank account name
+ * @property {string} number - Payer's bank account number
+ */
+
+/**
  * @typedef {Object} CreateOrderBody
  * @property {OrderItem[]} items - Order items
  * @property {ShippingAddress} shippingAddress - Shipping address
  * @property {CustomerInfo} customerInfo - Customer information
+ * @property {PaymentMethod} paymentMethod - Selected payment method
+ * @property {TransferInfo} [transfer] - Transfer details if paymentMethod is "transfer"
  */
 
 /**

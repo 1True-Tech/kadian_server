@@ -1,0 +1,273 @@
+import User from "../../../models/user.js";
+import connectDbUsers from "../../../lib/utils/mongo/connect-db-users.js";
+
+/**
+ * @typedef {Object} UserResponse
+ * @property {string} id - User's ID
+ * @property {string} email - User's email
+ * @property {Object} name - User's name object
+ * @property {string} name.first - First name
+ * @property {string} name.last - Last name
+ * @property {string} role - User's role
+ * @property {Date} createdAt - Account creation date
+ * @property {Date} updatedAt - Last update date
+ */
+
+/**
+ * Validate if the requesting user has admin privileges
+ * @param {Object} auth - Auth object from the request event
+ * @throws {Error} If user is not admin
+ */
+function validateAdmin(auth) {
+  if (!auth || !auth.userId || auth.userRole !== "admin") {
+    const error = new Error("Unauthorized access");
+    error.statusCode = 403;
+    throw error;
+  }
+}
+
+/**
+ * Get all users from the users API
+ * @param {import('../../../lib/utils/withErrorHandling.js').RouteEvent} event
+ * @returns {Promise<Object>} Response object
+ */
+export const getAllUsers = async (event) => {
+  validateAdmin(event.auth);
+
+  await connectDbUsers();
+  const users = await User.find({})
+    .select("email name role isVerified createdAt updatedAt")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const sanitizedUsers = users.map((user) => ({
+    id: user._id.toString(),
+    email: user.email,
+    name: user.name || { first: "N/A", last: "N/A" },
+    role: user.role || "user",
+    isVerified: user.isVerified || false,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  }));
+
+  return {
+    statusCode: 200,
+    message: "Users retrieved successfully",
+    data: sanitizedUsers,
+  };
+};
+
+/**
+ * Update a user's role
+ * @param {import('../../../lib/utils/withErrorHandling.js').RouteEvent} event - The request event
+ * @returns {Promise<Object>} Response object
+ */
+export const updateUserRole = async (event) => {
+  validateAdmin(event.auth);
+
+  const { userId } = event.params;
+  const { role } = event.body;
+
+  if (!userId) {
+    return {
+      statusCode: 400,
+      message: "User ID is required",
+    };
+  }
+
+  if (!role || !["user", "admin", "manager"].includes(role)) {
+    return {
+      statusCode: 400,
+      message: "Invalid role specified",
+    };
+  }
+
+  await connectDbUsers();
+
+  // Check if trying to modify another admin
+  const targetUser = await User.findById(userId).lean();
+  if (!targetUser) {
+    return {
+      statusCode: 404,
+      message: "User not found",
+    };
+  }
+
+  if (targetUser.role === "admin" && role !== "admin") {
+    return {
+      statusCode: 403,
+      message: "Cannot modify another admin's role",
+    };
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { role },
+    { new: true }
+  )
+    .select("email name role")
+    .lean();
+
+  return {
+    statusCode: 200,
+    message: "User role updated successfully",
+    data: {
+      id: updatedUser._id.toString(),
+      email: updatedUser.email,
+      name: updatedUser.name,
+      role: updatedUser.role,
+    },
+  };
+};
+
+/**
+ * Delete a user account
+ * @param {import('../../../lib/utils/withErrorHandling.js').RouteEvent} event - The request event
+ * @returns {Promise<Object>} Response object
+ */
+export const deleteUser = async (event) => {
+  validateAdmin(event.auth);
+
+  const { userId } = event.params;
+  if (!userId) {
+    return {
+      statusCode: 400,
+      message: "User ID is required",
+    };
+  }
+
+  await connectDbUsers();
+
+  // Check if trying to delete an admin
+  const targetUser = await User.findById(userId).lean();
+  if (!targetUser) {
+    return {
+      statusCode: 404,
+      message: "User not found",
+    };
+  }
+
+  if (targetUser.role === "admin") {
+    return {
+      statusCode: 403,
+      message: "Cannot delete admin users",
+    };
+  }
+
+  // Delete the user
+  await User.findByIdAndDelete(userId);
+
+  return {
+    statusCode: 200,
+    message: "User deleted successfully",
+    data: { id: userId },
+  };
+};
+
+/**
+ * Get user details for admin view (excludes sensitive data)
+ * @param {import('../../../lib/utils/withErrorHandling.js').RouteEvent} event - The request event
+ * @returns {Promise<Object>} Response object
+ */
+export const getUserDetails = async (event) => {
+  validateAdmin(event.auth);
+
+  const { userId } = event.params;
+  if (!userId) {
+    return {
+      statusCode: 400,
+      message: "User ID is required",
+    };
+  }
+
+  await connectDbUsers();
+  const user = await User.findById(userId)
+    .select("email name role createdAt updatedAt")
+    .lean();
+
+  if (!user) {
+    return {
+      statusCode: 404,
+      message: "User not found",
+    };
+  }
+
+  const sanitizedUser = {
+    id: user._id.toString(),
+    email: user.email,
+    name: user.name || { first: "N/A", last: "N/A" },
+    role: user.role || "user",
+    isVerified: user.isVerified || false,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt,
+  };
+
+  return {
+    statusCode: 200,
+    message: "User details retrieved successfully",
+    data: sanitizedUser,
+  };
+};
+
+/**
+ * Update user's verification status
+ * @param {import('../../../lib/utils/withErrorHandling.js').RouteEvent} event - The request event
+ * @returns {Promise<Object>} Response object
+ */
+export const updateUserVerification = async (event) => {
+  validateAdmin(event.auth);
+
+  const { userId } = event.params;
+  const { isVerified } = event.body;
+
+  if (!userId) {
+    return {
+      statusCode: 400,
+      message: "User ID is required",
+    };
+  }
+
+  if (typeof isVerified !== "boolean") {
+    return {
+      statusCode: 400,
+      message: "Invalid verification state specified. Must be true or false",
+    };
+  }
+
+  await connectDbUsers();
+
+  const targetUser = await User.findById(userId).lean();
+  if (!targetUser) {
+    return {
+      statusCode: 404,
+      message: "User not found",
+    };
+  }
+
+  if (targetUser.role === "admin") {
+    return {
+      statusCode: 403,
+      message: "Cannot modify admin user verification status",
+    };
+  }
+
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    { isVerified },
+    { new: true }
+  )
+    .select("email name role isVerified")
+    .lean();
+
+  return {
+    statusCode: 200,
+    message: "User verification status updated successfully",
+    data: {
+      id: updatedUser._id.toString(),
+      email: updatedUser.email,
+      name: updatedUser.name,
+      role: updatedUser.role,
+      isVerified: updatedUser.isVerified,
+    },
+  };
+};

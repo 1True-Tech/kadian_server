@@ -37,6 +37,7 @@ export default async function stockUpdate(event) {
     },
   });
 
+
   if (!body || hasError) {
     return {
       statusCode: 400,

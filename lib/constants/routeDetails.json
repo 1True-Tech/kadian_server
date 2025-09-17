@@ -1,0 +1,546 @@
+{
+  "api_documentation": {
+    "title": "Kadian Server API Documentation",
+    "version": "1.0.0",
+    "base_url": "http://localhost:8000",
+    "description": "Comprehensive API documentation for the Kadian e-commerce server",
+    "authentication": {
+      "type": "Bearer Token",
+      "header": "Authorization: Bearer <token>",
+      "description": "JWT tokens obtained from login/register endpoints"
+    },
+    "security_features": {
+      "rate_limiting": {
+        "general": "1000 requests per 15 minutes",
+        "auth_endpoints": "100 requests per 15 minutes"
+      },
+      "cors": "Configured for specific origins",
+      "security_headers": "XSS protection, CSRF prevention, clickjacking protection"
+    },
+    "routes": {
+      "health": {
+        "method": "GET",
+        "path": "/health",
+        "auth_required": false,
+        "description": "Health check endpoint to verify server status",
+        "response": {
+          "status": "good",
+          "statusCode": 200,
+          "message": "Request processed successfully",
+          "connectionActivity": "online"
+        }
+      },
+      "authentication": {
+        "login": {
+          "method": "POST",
+          "path": "/auth/login",
+          "auth_required": false,
+          "rate_limit": "5 requests per 15 minutes",
+          "description": "Authenticate user and receive JWT tokens",
+          "body_structure": {
+            "email": "string (required) - Valid email format",
+            "password": "string (required) - Minimum 8 characters with uppercase, number, and symbol"
+          },
+          "example_request": {
+            "email": "user@example.com",
+            "password": "SecurePass123!"
+          },
+          "response_success": {
+            "status": "good",
+            "statusCode": 200,
+            "message": "Sign in successful.",
+            "data": {
+              "access": "string - JWT access token",
+              "refresh": "string - JWT refresh token"
+            }
+          },
+          "response_error": {
+            "status": "bad",
+            "statusCode": 401,
+            "message": "Invalid password"
+          }
+        },
+        "register": {
+          "method": "POST",
+          "path": "/auth/register",
+          "auth_required": false,
+          "rate_limit": "5 requests per 15 minutes",
+          "description": "Create new user account",
+          "body_structure": {
+            "email": "string (required) - Valid email format, must be unique",
+            "password": "string (required) - Minimum 8 characters with uppercase, number, and symbol",
+            "name": {
+              "first": "string (required) - 1-50 characters",
+              "last": "string (required) - 1-50 characters"
+            }
+          },
+          "example_request": {
+            "email": "newuser@example.com",
+            "password": "SecurePass123!",
+            "name": {
+              "first": "John",
+              "last": "Doe"
+            }
+          },
+          "response_success": {
+            "status": "good",
+            "statusCode": 201,
+            "message": "User registered successfully",
+            "data": {
+              "access": "string - JWT access token",
+              "refresh": "string - JWT refresh token"
+            }
+          }
+        }
+      },
+      "user_management": {
+        "get_profile": {
+          "method": "GET",
+          "path": "/auth/me",
+          "auth_required": true,
+          "description": "Get current user's profile information",
+          "response_success": {
+            "status": "good",
+            "statusCode": 200,
+            "data": {
+              "_id": "string - User ID",
+              "email": "string - User email",
+              "name": {
+                "first": "string - First name",
+                "last": "string - Last name"
+              },
+              "phone": "string - Phone number (optional)",
+              "role": "string - user or admin",
+              "addresses": [
+                {
+                  "_id": "string - Address ID",
+                  "line1": "string - Address line 1",
+                  "line2": "string - Address line 2 (optional)",
+                  "city": "string - City",
+                  "state": "string - State",
+                  "postal": "string - Postal code",
+                  "country": "string - Country"
+                }
+              ],
+              "cart": [
+                {
+                  "_id": "string - Cart item ID",
+                  "productId": "string - Sanity product ID",
+                  "variantSku": "string - Product variant SKU",
+                  "quantity": "number - Item quantity",
+                  "price": "number - Price per unit",
+                  "addedAt": "string - ISO date",
+                  "updatedAt": "string - ISO date"
+                }
+              ],
+              "wishList": [
+                {
+                  "_id": "string - Wishlist item ID",
+                  "productId": "string - Sanity product ID"
+                }
+              ]
+            }
+          }
+        },
+        "update_profile": {
+          "method": "PATCH",
+          "path": "/auth/me",
+          "auth_required": true,
+          "description": "Update user profile information",
+          "body_structure": {
+            "email": "string (optional) - New email address",
+            "name": {
+              "first": "string (optional) - New first name",
+              "last": "string (optional) - New last name"
+            },
+            "phone": "string (optional) - Phone in E.164 format (+1234567890)",
+            "addresses": [
+              {
+                "line1": "string (required) - Address line 1",
+                "line2": "string (optional) - Address line 2",
+                "city": "string (required) - City",
+                "state": "string (required) - State",
+                "postal": "string (required) - Postal code",
+                "country": "string (required) - Country"
+              }
+            ]
+          },
+          "example_request": {
+            "name": {
+              "first": "Jane"
+            },
+            "phone": "+1234567890"
+          }
+        },
+        "delete_account": {
+          "method": "DELETE",
+          "path": "/auth/me",
+          "auth_required": true,
+          "description": "Delete user account permanently"
+        }
+      },
+      "cart_management": {
+        "get_cart": {
+          "method": "GET",
+          "path": "/auth/me/cart",
+          "auth_required": true,
+          "description": "Get user's shopping cart",
+          "response_success": {
+            "status": "good",
+            "statusCode": 200,
+            "data": [
+              {
+                "_id": "string - Cart item ID",
+                "productId": "string - Sanity product ID",
+                "variantSku": "string - Product variant SKU",
+                "quantity": "number - Item quantity",
+                "price": "number - Price per unit",
+                "addedAt": "string - ISO date",
+                "updatedAt": "string - ISO date"
+              }
+            ]
+          }
+        },
+        "update_cart": {
+          "method": "PATCH",
+          "path": "/auth/me/cart",
+          "auth_required": true,
+          "description": "Add items to cart or update existing items",
+          "body_structure": {
+            "updateData": [
+              {
+                "productId": "string (required) - Sanity product ID",
+                "variantSku": "string (required) - Product variant SKU",
+                "quantity": "number (required) - Item quantity (min: 1)",
+                "price": "number (required) - Price per unit"
+              }
+            ]
+          },
+          "example_request": {
+            "updateData": [
+              {
+                "productId": "prod_123",
+                "variantSku": "SKU_001",
+                "quantity": 2,
+                "price": 2999
+              }
+            ]
+          }
+        },
+        "clear_cart": {
+          "method": "DELETE",
+          "path": "/auth/me/cart",
+          "auth_required": true,
+          "description": "Remove all items from cart"
+        },
+        "get_cart_item": {
+          "method": "GET",
+          "path": "/auth/me/cart/:id",
+          "auth_required": true,
+          "description": "Get specific cart item",
+          "path_params": {
+            "id": "string (required) - Cart item ID"
+          }
+        },
+        "update_cart_item": {
+          "method": "PATCH",
+          "path": "/auth/me/cart/:id",
+          "auth_required": true,
+          "description": "Update specific cart item",
+          "path_params": {
+            "id": "string (required) - Cart item ID"
+          },
+          "body_structure": {
+            "quantity": "number (optional) - New quantity",
+            "price": "number (optional) - New price"
+          }
+        },
+        "delete_cart_item": {
+          "method": "DELETE",
+          "path": "/auth/me/cart/:id",
+          "auth_required": true,
+          "description": "Remove specific item from cart",
+          "path_params": {
+            "id": "string (required) - Cart item ID"
+          }
+        }
+      },
+      "wishlist_management": {
+        "get_wishlist": {
+          "method": "GET",
+          "path": "/auth/me/wishlist",
+          "auth_required": true,
+          "description": "Get user's wishlist",
+          "response_success": {
+            "status": "good",
+            "statusCode": 200,
+            "data": [
+              {
+                "_id": "string - Wishlist item ID",
+                "productId": "string - Sanity product ID"
+              }
+            ]
+          }
+        },
+        "update_wishlist": {
+          "method": "PATCH",
+          "path": "/auth/me/wishlist",
+          "auth_required": true,
+          "description": "Add items to wishlist",
+          "body_structure": {
+            "updateData": [
+              {
+                "productId": "string (required) - Sanity product ID"
+              }
+            ]
+          }
+        },
+        "clear_wishlist": {
+          "method": "DELETE",
+          "path": "/auth/me/wishlist",
+          "auth_required": true,
+          "description": "Remove all items from wishlist"
+        },
+        "get_wishlist_item": {
+          "method": "GET",
+          "path": "/auth/me/wishlist/:id",
+          "auth_required": true,
+          "description": "Get specific wishlist item",
+          "path_params": {
+            "id": "string (required) - Wishlist item ID"
+          }
+        },
+        "delete_wishlist_item": {
+          "method": "DELETE",
+          "path": "/auth/me/wishlist/:id",
+          "auth_required": true,
+          "description": "Remove specific item from wishlist",
+          "path_params": {
+            "id": "string (required) - Wishlist item ID"
+          }
+        }
+      },
+      "orders_management": {
+        "list": {
+          "method": "GET",
+          "path": "/orders",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Get all orders"
+        },
+        "create": {
+          "method": "POST",
+          "path": "/orders",
+          "requiresAuth": true,
+          "roles": ["user", "guest"],
+          "description": "Create a new order",
+          "image_handling": {
+            "payment_proof": {
+              "storage": "mongodb",
+              "format": "base64",
+              "types": ["image/jpeg", "image/png"],
+              "max_size": "5MB"
+            }
+          }
+        },
+        "getById": {
+          "method": "GET",
+          "path": "/orders/:id",
+          "requiresAuth": true,
+          "roles": ["user", "admin"],
+          "description": "Get order details"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/orders/:id",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Update order status"
+        },
+        "cancel": {
+          "method": "DELETE",
+          "path": "/orders/:id",
+          "requiresAuth": true,
+          "roles": ["user"],
+          "description": "Cancel order (marks as cancelled)",
+          "restrictions": "Within 4 days of creation"
+        },
+        "delete": {
+          "method": "DELETE",
+          "path": "/orders/:id/permanent",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Permanently delete order",
+          "restrictions": "Within 4 days of creation"
+        }
+      },
+      "inventory_management": {
+        "list": {
+          "method": "GET",
+          "path": "/inventory",
+          "requiresAuth": false,
+          "roles": ["guest"],
+          "description": "Get all inventory items"
+        },
+        "getById": {
+          "method": "GET",
+          "path": "/inventory/:productId",
+          "requiresAuth": false,
+          "roles": ["guest"],
+          "description": "Get product details"
+        },
+        "update": {
+          "method": "PATCH",
+          "path": "/inventory/:productId/:sku/stock",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Update product stock"
+        },
+        "refresh": {
+          "method": "POST",
+          "path": "/inventory/_refresh",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Refresh inventory from external source"
+        }
+      },
+      "images_management": {
+        "upload": {
+          "method": "POST",
+          "path": "/images",
+          "requiresAuth": true,
+          "roles": ["user", "admin"],
+          "description": "Upload an image",
+          "storage": {
+            "type": "mongodb",
+            "format": "base64",
+            "mimeTypes": ["image/jpeg", "image/png"],
+            "maxSize": "5MB"
+          }
+        },
+        "list": {
+          "method": "GET",
+          "path": "/images",
+          "requiresAuth": true,
+          "roles": ["admin"],
+          "description": "Get all images metadata"
+        },
+        "getById": {
+          "method": "GET",
+          "path": "/images/:id",
+          "requiresAuth": true,
+          "roles": ["user", "admin"],
+          "description": "Get image by ID with full data"
+        }
+      },
+      "admin": {
+        "dashboard-get_stats": {
+          "method": "GET",
+          "path": "/admin/dashboard/stats",
+          "auth_required": true,
+          "allowed_roles": ["admin"],
+          "description": "Get dashboard statistics including revenue, orders, users, and products",
+          "query_params": {
+            "period": "string (optional) - Time period for comparison (day, month, year). Default: month"
+          },
+          "response": {
+            "status": "string - Response status (good/bad)",
+            "statusCode": "number - HTTP status code",
+            "message": "string - Response message",
+            "data": {
+              "description": "Array of statistics",
+              "type": "array",
+              "items": {
+                "type": "string - Metric type (revenue, orders, users, products)",
+                "title": "string - Display title",
+                "value": "string - Current value",
+                "change": "string - Percentage change with % symbol",
+                "positive": "boolean - Whether the change is positive"
+              }
+            }
+          }
+        }
+      }
+    },
+    "error_responses": {
+      "400": {
+        "status": "bad",
+        "statusCode": 400,
+        "message": "Bad Request - Invalid input data"
+      },
+      "401": {
+        "status": "bad",
+        "statusCode": 401,
+        "message": "Unauthorized - Authentication required"
+      },
+      "403": {
+        "status": "bad",
+        "statusCode": 403,
+        "message": "Forbidden - Insufficient privileges"
+      },
+      "404": {
+        "status": "bad",
+        "statusCode": 404,
+        "message": "Not Found - Resource not found"
+      },
+      "429": {
+        "status": "bad",
+        "statusCode": 429,
+        "message": "Too Many Requests - Rate limit exceeded",
+        "retryAfter": "number - Seconds until retry allowed"
+      },
+      "500": {
+        "status": "bad",
+        "statusCode": 500,
+        "message": "Internal Server Error"
+      },
+      "503": {
+        "status": "bad",
+        "statusCode": 503,
+        "message": "Service Unavailable - Cannot reach internet"
+      }
+    },
+    "data_types": {
+      "address": {
+        "line1": "string (required) - Street address line 1",
+        "line2": "string (optional) - Street address line 2",
+        "city": "string (required) - City name",
+        "state": "string (required) - State/Province",
+        "postal": "string (required) - Postal/ZIP code",
+        "country": "string (required) - Country name"
+      },
+      "cart_item": {
+        "_id": "string - Cart item ID",
+        "productId": "string - Sanity product ID",
+        "variantSku": "string - Product variant SKU",
+        "quantity": "number - Item quantity (min: 1)",
+        "price": "number - Price per unit in cents/kobo",
+        "addedAt": "string - ISO date when added",
+        "updatedAt": "string - ISO date when last updated"
+      },
+      "order_item": {
+        "sanityProductId": "string - Sanity product ID",
+        "variantSku": "string - Product variant SKU",
+        "quantity": "number - Item quantity (min: 1)",
+        "price": "number - Price per unit in cents/kobo"
+      },
+      "inventory_variant": {
+        "sku": "string - Stock keeping unit (unique)",
+        "stock": "number - Total stock available",
+        "currentStock": "number - Current available stock",
+        "stockThreshold": "number - Low stock warning threshold",
+        "price": "number - Price in cents/kobo"
+      }
+    },
+    "notes": {
+      "authentication": "All authenticated routes require 'Authorization: Bearer <token>' header",
+      "rate_limiting": "Authentication endpoints have stricter rate limits",
+      "prices": "All prices are in cents/kobo (multiply by 100 for dollar amounts)",
+      "dates": "All dates are in ISO 8601 format",
+      "guest_orders": "Guest users can create orders but need to provide customer info",
+      "admin_privileges": "Admin users have access to all user data and management functions",
+      "stock_management": "Stock is automatically updated when orders are created",
+      "error_handling": "All endpoints return consistent error response format"
+    }
+  }
+}

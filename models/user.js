@@ -14,13 +14,13 @@ const UserSchema = new Schema({
   email: {
     type: String,
     required: true,
-    unique: true,
     match: [
       /^[\w!#$%&'*+/=?`{|}~^.-]+@[\w.-]+\.[a-zA-Z]{2,}$/, // this is to validate if the email is following standard email format
       "Invalid email format",
     ],
     minlength: 5,
   },
+  username: {type: String, required: true, minlength: 4},
   password: {
     type: String,
     required: true,
@@ -42,7 +42,7 @@ const UserSchema = new Schema({
   addresses: [address], // embed addresses (one-to-few):contentReference[oaicite:13]{index=13}
   cart: [
     {
-      productId: { type: String, unique: true }, // Sanity product ID
+      productId: { type: String }, // Sanity product ID
       addedAt: { type: Date, default: Date.now },
       updatedAt: { type: Date, default: Date.now },
       quantity: { type: Number, default: 1 },
@@ -53,7 +53,7 @@ const UserSchema = new Schema({
 
   wishList: [
     {
-      productId: { type: String, unique: true }
+      productId: { type: String }
     },
   ],
   role: {
@@ -61,11 +61,16 @@ const UserSchema = new Schema({
     enum: ["user", "admin"],
     default: "user",
   },
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
   resetPasswordTokenHash: String,
   resetPasswordExpires: Date,
   loginAttempts: { type: Number, default: 0 },
   lockUntil: Number,
 });
+UserSchema.index({ email: 1 }, { unique: true });
 
 // Pre-save: hash modified password
 UserSchema.pre("save", function (next) {
@@ -92,7 +97,7 @@ UserSchema.methods.generateAuthToken = function () {
   if (!JWT_ACCESS_SECRET || !JWT_REFRESH_SECRET)
     throw new Error("JWT_ACCESS_SECRET or JWT_REFRESH_SECRET not set");
   const access = jwt.sign(
-    { userId: this._id.toString() }, // you can add other payload items to this as well, maybe role or so
+    { userId: this._id.toString(), role:this.role }, // you can add other payload items to this as well, maybe role or so
     JWT_ACCESS_SECRET,
     {
       expiresIn: TOKEN_EXPIRY,

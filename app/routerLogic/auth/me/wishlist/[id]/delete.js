@@ -22,7 +22,7 @@ export default async function deleteItem(event) {
     // 4. Verify item exists before deletion
     const userWithItem = await User.findOne({
       _id: event.auth?.userId,
-      "wishlist._id": id,
+      "wishList.productId": id,
     });
 
     if (!userWithItem) {
@@ -36,7 +36,7 @@ export default async function deleteItem(event) {
     // 5. Remove item from wishlist
     const updatedUser = await User.findByIdAndUpdate(
       event.auth?.userId,
-      { $pull: { wishlist: { _id: id } } },
+      { $pull: { wishList: { productId: id } } },
       { new: true, runValidators: true }
     );
 

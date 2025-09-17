@@ -19,13 +19,13 @@ export default async function myCartDelete(event) {
     };
   }
   try {
-    const user = await User.findById(token.data.userId).select(
+    const user = await User.findById(auth.userId).select(
       "-password -__v"
     );
 
     if (!user) {
       return {
-        connectionActivity: isOnline,
+        
         statusCode: 404,
         status: "bad",
         message: "User not found",
@@ -34,14 +34,14 @@ export default async function myCartDelete(event) {
     }
 
     const clearedUserCartList = await User.findByIdAndUpdate(
-      token.data.userId,
+      auth.userId,
       { $set: { cart: [] } },
       { new: true }
     );
 
     if (!clearedUserCartList) {
       return {
-        connectionActivity: isOnline,
+        
         statusCode: 500,
         status: "bad",
         message:
@@ -50,7 +50,7 @@ export default async function myCartDelete(event) {
       };
     }
     return {
-      connectionActivity: isOnline,
+      
       statusCode: 200,
       status: "good",
       message: "User cart cleared successfully",

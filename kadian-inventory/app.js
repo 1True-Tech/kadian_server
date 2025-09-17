@@ -1,1 +1,0 @@
-//Node.js API for inventory management.
