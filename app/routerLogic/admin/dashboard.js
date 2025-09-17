@@ -114,9 +114,6 @@ async function calculateRevenue(orders) {
 async function calculateMetricsForRange(timeRange, baseUrl, event) {
   try {
     const { start, end } = timeRange;
-    if (!event.auth || !event.auth.token) {
-      throw new Error("No authorization token available");
-    }
     const headers = {
       authorization: "Bearer " + event.auth.token,
       "Content-Type": "application/json",
