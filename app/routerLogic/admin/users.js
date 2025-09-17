@@ -32,7 +32,7 @@ function validateAdmin(auth) {
  * @returns {Promise<Object>} Response object
  */
 export const getAllUsers = async (event) => {
-  console.log(event.auth)
+  console.log(event.req)
   validateAdmin(event.auth);
 
   await connectDbUsers();
