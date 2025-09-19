@@ -19,7 +19,7 @@ export async function permanentlyDeleteOrder(event) {
     label: "Parameters",
   });
 
-  if (hasError || !object) {
+  if (hasError || !params) {
     return {
       statusCode: 400,
       status: "bad",
