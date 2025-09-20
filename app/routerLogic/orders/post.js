@@ -112,7 +112,6 @@ export async function post(event) {
     amount: totalAmount,
     status: payment.method === "transfer" ? "pending" : "initiated",
   };
-  console.log(payment)
   if (payment.method === "transfer") {
     if(payment.proof){try {
       // Connect to images database first

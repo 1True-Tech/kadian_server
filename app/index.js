@@ -19,6 +19,7 @@ import { healthLogic } from "./routerLogic/index.js";
 import inventory from "./routerLogic/inventory/index.js";
 import orders from "./routerLogic/orders/index.js";
 import admin from "./routerLogic/admin/index.js";
+import images from "./routerLogic/images/index.js";
 
 // App setup
 const app = express();
@@ -237,6 +238,16 @@ router({
   handler: withErrorHandling(orders.get, { requireAuth: true, allowedRoles: ["admin"] }),
 });
 
+router({
+  method: "get",
+  path: "/images",
+  handler: withErrorHandling(images.get),
+});
+router({
+  method: "get",
+  path: "/images/:id",
+  handler: withErrorHandling(images.getItem),
+});
 
 // Starting the server
 app.listen(PORT, () => {
