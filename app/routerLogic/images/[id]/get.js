@@ -3,7 +3,7 @@ import getDbConnection from "../../../../lib/utils/mongo/get-db-connection.js";
 
 /**
  * Get a single image by ID
- * @param {Object} event The route event
+ * @param {import("../../../../lib/utils/withErrorHandling.js").RouteEvent} event The route event
  * @returns {Promise<Object>} Response with image data
  */
 export async function get(event) {
@@ -19,13 +19,9 @@ export async function get(event) {
         message: "Image not found" 
       };
     }
-
-    return { 
-      status: "good", 
-      statusCode: 200, 
-      image,
-      message: "Image fetched successfully" 
-    };
+    const buffer = Buffer.from(image.data, 'base64');
+    event.res.setHeader('Content-Type', image.mimetype);
+    event.res.send(buffer)
   } catch (error) {
     return {
       status: "bad",
