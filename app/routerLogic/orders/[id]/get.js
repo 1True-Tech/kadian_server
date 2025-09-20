@@ -1,7 +1,7 @@
 import connectDbOrders from "../../../../lib/utils/mongo/connect-db-orders.js";
-import Order from "../../../../models/order.js";
 import objectErrorBoundary from "../../../../lib/utils/objectErrorBoundary.js";
-import parseOrderItem from "../../../lib/utils/parseOrderItem.js";
+import parseOrderInfo from "../../../../lib/utils/parseOrderInfo.js";
+import Order from "../../../../models/order.js";
 /**
  * Get order details by ID
  * @param {Omit<import("../../../../lib/utils/withErrorHandling.js").RouteEvent, 'params'> & {params:{id:string}}} event Parameters containing the order ID
@@ -41,7 +41,7 @@ export async function getOrder(event) {
     return {
       status: "good",
       statusCode: 200,
-      order: parseOrderItem(order),
+      order: parseOrderInfo(order),
       message: "Order fetched successfully",
     };
   } catch (error) {
