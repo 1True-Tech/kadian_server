@@ -21,7 +21,7 @@ export const captureValidation = validateRequest({
 export default async function captureOrder(event) {
   try {
     const { orderId } = event.body;
-    const clientIp = event.headers['x-forwarded-for'] || event.requestContext?.identity?.sourceIp || 'unknown';
+    const clientIp = event.req.headers['x-forwarded-for'] || 'unknown';
     
     logger.payment.info({ orderId, clientIp }, 'Capturing PayPal order');
 
