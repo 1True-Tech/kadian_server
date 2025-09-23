@@ -22,7 +22,7 @@ export const loginValidation = validateRequest({
 export default async function login(event) {
   // Validation is now handled by the loginValidation middleware
   const body = event.body;
-  const clientIp = event.headers['x-forwarded-for'] || event.connection?.remoteAddress;
+  const clientIp = event.req.headers['x-forwarded-for'];
 
   // 2. Connect to database
   try {
