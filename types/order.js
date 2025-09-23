@@ -46,7 +46,7 @@
 
 /**
  * @typedef {Object} OrderListResponse
- * @property {OrdersResponseData[]} [orders] - List of orders
+ * @property {OrdersResponseData[]} [data] - List of orders
  */
 
 /**
