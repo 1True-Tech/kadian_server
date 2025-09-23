@@ -52,7 +52,7 @@ export async function getByUser(event) {
     return {
       status: "good",
       statusCode: 200,
-      orders: parseOrderItem(orders),
+      data: parseOrderItem(orders),
       message: "Orders fetched successfully",
     };
   } catch (error) {

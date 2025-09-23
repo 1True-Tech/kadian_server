@@ -5,7 +5,12 @@ import express from "express";
 
 // Security middleware
 import { authRateLimit, generalRateLimit } from "../lib/middleware/rateLimiter.js";
-import securityHeaders from "../lib/middleware/securityHeaders.js";
+import { dynamicRequestSizeLimit } from "../lib/middleware/requestLimits.js";
+import helmetMiddleware from "../lib/middleware/securityHeaders.js";
+
+// Structured logging
+import pino from 'pino';
+import pinoHttp from 'pino-http';
 
 // Helpers
 import withErrorHandling from "../lib/utils/withErrorHandling.js";
@@ -13,35 +18,66 @@ import withErrorHandling from "../lib/utils/withErrorHandling.js";
 // Route logic
 import env from "../lib/constants/env.js";
 import useRouter from "../lib/utils/routeHandler.js";
+import admin from "./routerLogic/admin/index.js";
 import auth from "./routerLogic/auth/index.js";
 import { homeLogic } from "./routerLogic/home.js";
+import images from "./routerLogic/images/index.js";
 import { healthLogic } from "./routerLogic/index.js";
 import inventory from "./routerLogic/inventory/index.js";
 import orders from "./routerLogic/orders/index.js";
-import admin from "./routerLogic/admin/index.js";
-import images from "./routerLogic/images/index.js";
+import payments from "./routerLogic/payments/index.js";
 
 // App setup
 const app = express();
 const PORT = env.PORT;
 
-// static
+// Configure structured logger
+const logger = pino({
+  level: env.NODE_ENV === 'production' ? 'info' : 'debug',
+  transport: env.NODE_ENV !== 'production' ? {
+    target: 'pino-pretty',
+    options: { colorize: true }
+  } : undefined
+});
+
+// Add logger to request object
+const httpLogger = pinoHttp({
+  logger,
+  customLogLevel: (req, res, err) => {
+    if (res.statusCode >= 500 || err) return 'error';
+    if (res.statusCode >= 400) return 'warn';
+    return 'info';
+  },
+  customSuccessMessage: (req, res) => `${req.method} ${req.url} completed with ${res.statusCode}`,
+  customErrorMessage: (req, res, err) => `${req.method} ${req.url} failed with ${err.message}`
+});
+
+// Static files
 app.use(express.static("public")); 
 
 // Security middleware
-app.use(securityHeaders);
+app.use(helmetMiddleware);
 app.use(generalRateLimit);
+app.use(httpLogger);
 
-// Middleware
+// CORS configuration with strict options
 app.use(cors({
   origin: env.NODE_ENV === 'production' 
-    ? [...env.ALLOWEDDOMAIN.split(",")] // Replace with your actual domain
-    : ['http://localhost:8000', 'http://localhost:3000'], // Development origins
+    ? [...env.ALLOWEDDOMAIN.split(",")] 
+    : ['http://localhost:8000', 'http://localhost:3000'],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  maxAge: 86400 // 24 hours
 }));
-app.use(bodyParser.json({ limit: '10mb' })); // Limit payload size
-app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+
+// Request size limits - apply before body parsers
+app.use(dynamicRequestSizeLimit);
+
+// Body parsers with appropriate limits
+app.use(bodyParser.json({ limit: '2mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '2mb' }));
 
 const router = useRouter(app);
 
@@ -248,6 +284,38 @@ router({
   path: "/images/:id",
   handler: withErrorHandling(images.getItem),
 });
+
+// Payment routes - Stripe
+router({
+  method: "post",
+  path: "/payments/stripe/create-checkout-session",
+  handler: withErrorHandling(payments.stripe.createCheckoutSession),
+});
+
+router({
+  method: "post",
+  path: "/payments/stripe/webhook",
+  handler: withErrorHandling(payments.stripe.webhook),
+});
+
+// Payment routes - PayPal
+// router({
+//   method: "post",
+//   path: "/payments/paypal/create-order",
+//   handler: withErrorHandling(payments.paypal.createOrder),
+// });
+
+// router({
+//   method: "post",
+//   path: "/payments/paypal/capture-order",
+//   handler: withErrorHandling(payments.paypal.captureOrder),
+// });
+
+// router({
+//   method: "post",
+//   path: "/payments/paypal/webhook",
+//   handler: withErrorHandling(payments.paypal.webhook),
+// });
 
 // Starting the server
 app.listen(PORT, () => {
