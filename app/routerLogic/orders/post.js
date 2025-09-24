@@ -32,6 +32,10 @@ async function removeFromCart(userId, orderedItems) {
   }
 }
 
+/**
+  * POST /orders - Create a new order
+ * @param {import("../../../lib/utils/withErrorHandling.js").RouteEvent} event
+ */
 export async function post(event) {
   const baseUrl = event.req.protocol + "://" + event.req.get("host");
 
@@ -115,7 +119,7 @@ export async function post(event) {
   if (payment.method === "transfer") {
     if(payment.proof){try {
       // Connect to images database first
-      const imageConn = getDbConnection("images");
+      getDbConnection("images");
       
       // Extract the mimetype from the base64 string
       const mimeMatch = payment.proof.match(/^data:([^;]+);base64,/);
@@ -133,7 +137,6 @@ export async function post(event) {
 
       // Explicitly wait for the save
       const savedImage = await image.save();
-      console.log('Saved image:', savedImage._id); // Debug log
 
       // Store the image reference in payment object
       paymentObj.proof = {

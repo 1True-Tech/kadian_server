@@ -222,6 +222,11 @@ router({
   handler: withErrorHandling(inventory.get),
 });
 router({
+  method: "post",
+  path: "/inventory/_refresh",
+  handler: withErrorHandling(inventory.refreshInventory, { requireAuth: true, allowedRoles:["admin"] }),
+});
+router({
   method: "get",
   path: "/inventory/:productId",
   handler: withErrorHandling(inventory.inventoryItem.get),
