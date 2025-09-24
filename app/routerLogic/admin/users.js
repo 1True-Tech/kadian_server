@@ -40,7 +40,7 @@ export const getAllUsers = async (event) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  const sanitizedUsers = users.map((user) => ({
+  const sanitizedUsers = users.filter(user => user._id !== event.auth.userId).map((user) => ({
     id: user._id.toString(),
     email: user.email,
     name: user.name || { first: "N/A", last: "N/A" },
