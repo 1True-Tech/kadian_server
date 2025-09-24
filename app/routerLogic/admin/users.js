@@ -1,5 +1,6 @@
 import User from "../../../models/user.js";
 import connectDbUsers from "../../../lib/utils/mongo/connect-db-users.js";
+import mongoose from "mongoose";
 
 /**
  * @typedef {Object} UserResponse
@@ -68,10 +69,10 @@ export const updateUserRole = async (event) => {
   const { userId } = event.params;
   const { role } = event.body;
 
-  if (!userId) {
+  if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
     return {
       statusCode: 400,
-      message: "User ID is required",
+      message: "Invalid or missing user ID",
     };
   }
 
@@ -84,7 +85,6 @@ export const updateUserRole = async (event) => {
 
   await connectDbUsers();
 
-  // Check if trying to modify another admin
   const targetUser = await User.findById(userId).lean();
   if (!targetUser) {
     return {
@@ -119,7 +119,6 @@ export const updateUserRole = async (event) => {
     },
   };
 };
-
 /**
  * Delete a user account
  * @param {import('../../../lib/utils/withErrorHandling.js').RouteEvent} event - The request event
