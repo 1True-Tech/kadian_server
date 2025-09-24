@@ -21,8 +21,14 @@ const paymentSchema = new Schema(
       enum: ["card", "transfer", "delivery"],
       required: true,
     },
+    provider: {
+      type: String,
+      enum: ["stripe", "paypal", "transfer", "delivery"],
+      required: false,
+    },
     reference: { type: String, required: false },
     amount: { type: Number, required: true },
+    currency: { type: String, default: "NGN" },
     status: {
       type: String,
       enum: ["initiated", "pending", "paid", "failed", "refunded"],
@@ -32,7 +38,49 @@ const paymentSchema = new Schema(
       imageId: { type: Schema.Types.ObjectId, ref: 'Image', required: false }, // MongoDB Image reference
       filename: { type: String, required: false }
     },
+    // Provider-specific IDs
+    providerOrderId: { type: String, required: false },
+    providerPaymentId: { type: String, required: false },
+    providerCheckoutSessionId: { type: String, required: false },
+    providerClientSecret: { type: String, required: false },
+    // Payment method details (safe fields only)
+    paymentMethod: {
+      brand: { type: String, required: false },
+      last4: { type: String, required: false },
+      expMonth: { type: Number, required: false },
+      expYear: { type: Number, required: false }
+    },
+    // Payer information
+    payer: {
+      email: { type: String, required: false },
+      id: { type: String, required: false }
+    },
+    receiptUrl: { type: String, required: false },
     paidAt: { type: Date },
+    // Idempotency and webhook handling
+    idempotencyKey: { type: String, required: false },
+    webhookProcessedAt: { type: Date },
+    attempts: { type: Number, default: 0 },
+    // Refund tracking
+    refunds: [{
+      id: { type: String, required: true },
+      amount: { type: Number, required: true },
+      status: { type: String, required: true },
+      createdAt: { type: Date, default: Date.now }
+    }],
+  },
+  { _id: false }
+);
+
+// Payment history for audit trail
+const paymentHistorySchema = new Schema(
+  {
+    timestamp: { type: Date, default: Date.now },
+    status: { type: String, required: true },
+    provider: { type: String, required: false },
+    amount: { type: Number, required: false },
+    metadata: { type: Schema.Types.Mixed },
+    webhookEvent: { type: String, required: false },
   },
   { _id: false }
 );
@@ -49,6 +97,8 @@ const orderSchema = new Schema(
       default: "pending",
     },
     payment: paymentSchema, // Proof of payment or selection
+    paymentHistory: [paymentHistorySchema], // Audit trail of payment status changes
+    rawWebhookEvents: [{ type: Schema.Types.Mixed }], // Store raw webhook events for debugging
     shippingAddress: address,
     customerInfo: {
       name: {
@@ -58,6 +108,8 @@ const orderSchema = new Schema(
       email: { type: String, required: true },
       phone: { type: String, required: false },
     },
+    totalAmount: { type: Number, required: true }, // Total amount in smallest currency unit (kobo/cents)
+    currency: { type: String, default: "NGN" }, // ISO currency code
   },
   { timestamps: true }
 );

@@ -6,6 +6,7 @@ import Order from "../../../models/order.js";
 import Image from "../../../models/image.js";
 import User from "../../../models/user.js";
 import getDbConnection from "../../../lib/utils/mongo/get-db-connection.js";
+import env from "../../../lib/constants/env.js";
 
 /**
  * Remove ordered items from user's cart
@@ -111,10 +112,13 @@ export async function post(event) {
     0
   );
 
+  const idempotencyKey = event.req.headers["x-idempotency-key"] || event.req.headers["idempotency-key"] || undefined;
+
   const paymentObj = {
     method: payment.method,
     amount: totalAmount,
     status: payment.method === "transfer" ? "pending" : "initiated",
+    idempotencyKey: typeof idempotencyKey === "string" ? idempotencyKey : Array.isArray(idempotencyKey) ? idempotencyKey[0] : undefined,
   };
   if (payment.method === "transfer") {
     if(payment.proof){try {
@@ -159,6 +163,8 @@ export async function post(event) {
     }
   }
 
+  const orderCurrency = payment.method === "card" ? (env.STRIPE_CURRENCY || "USD").toUpperCase() : "NGN";
+
   // Create the order object matching the schema
   const orderObj = {
     userId: isGuest ? null : userId,
@@ -173,10 +179,30 @@ export async function post(event) {
     status: "pending",
     customerInfo: customerInfoObj,
     payment: paymentObj,
+    totalAmount: totalAmount,
+    currency: orderCurrency,
   };
 
   try {
     await connectDbOrders();
+
+    // Idempotency: return existing order if idempotencyKey was provided and already processed
+    if (orderObj.payment.idempotencyKey) {
+      const existing = await Order.findOne({ "payment.idempotencyKey": orderObj.payment.idempotencyKey });
+      if (existing) {
+        return {
+          status: "good",
+          statusCode: 200,
+          message: "Order already created",
+          data: {
+            orderId: existing._id.toString(),
+            statusValue: existing.status,
+            payment: existing.payment,
+          },
+        };
+      }
+    }
+
     const order = new Order(orderObj);
 
     // Update inventory for each item
