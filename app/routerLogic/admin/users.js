@@ -122,7 +122,7 @@ export const updateUserRole = async (event) => {
     };
   }
 
-  if (targetUser.role === "admin" && role !== "admin") {
+  if (event.auth.userRole !== "superadmin" && (targetUser.role === "admin" && role !== "admin")) {
     return {
       statusCode: 403,
       message: "Cannot modify another admin's role",
