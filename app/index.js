@@ -223,7 +223,7 @@ router({
 });
 router({
   method: "post",
-  path: "/inventory/_refresh",
+  path: "/inventory_refresh",
   handler: withErrorHandling(inventory.refreshInventory, { requireAuth: true, allowedRoles:["admin"] }),
 });
 router({
