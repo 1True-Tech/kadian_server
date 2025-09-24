@@ -224,7 +224,7 @@ router({
 router({
   method: "post",
   path: "/inventory_refresh",
-  handler: withErrorHandling(inventory.refreshInventory, { requireAuth: true, allowedRoles:["admin"] }),
+  handler: withErrorHandling(inventory.refreshInventory, { requireAuth: true, allowedRoles:["admin", "superadmin"] }),
 });
 router({
   method: "get",
@@ -244,39 +244,39 @@ router({
 router({
   method: "get",
   path: "/admin/dashboard",
-  handler: withErrorHandling(admin.dashboard.getStats, { requireAuth: true, allowedRoles:["admin"] }),
+  handler: withErrorHandling(admin.dashboard.getStats, { requireAuth: true, allowedRoles:["admin", "superadmin"] }),
 });
 
 // Admin user management routes
 router({
   method: "get",
   path: "/users",
-  handler: withErrorHandling(admin.users.list, { requireAuth: true, allowedRoles: ["admin"] }),
+  handler: withErrorHandling(admin.users.list, { requireAuth: true, allowedRoles: ["admin", "superadmin"] }),
 });
 
 router({
   method: "get",
   path: "/users/:userId",
-  handler: withErrorHandling(admin.users.getDetails, { requireAuth: true, allowedRoles: ["admin"] }),
+  handler: withErrorHandling(admin.users.getDetails, { requireAuth: true, allowedRoles: ["admin", "superadmin"] }),
 });
 
 router({
   method: "patch",
   path: "/users/:userId/role",
-  handler: withErrorHandling(admin.users.updateRole, { requireAuth: true, allowedRoles: ["admin"] }),
+  handler: withErrorHandling(admin.users.updateRole, { requireAuth: true, allowedRoles: ["admin", "superadmin"] }),
 });
 
 router({
   method: "delete",
   path: "/users/:userId",
-  handler: withErrorHandling(admin.users.delete, { requireAuth: true, allowedRoles: ["admin"] }),
+  handler: withErrorHandling(admin.users.delete, { requireAuth: true, allowedRoles: ["admin", "superadmin"] }),
 });
 
 // admin orders route
 router({
   method: "get",
   path: "/orders",
-  handler: withErrorHandling(orders.get, { requireAuth: true, allowedRoles: ["admin"] }),
+  handler: withErrorHandling(orders.get, { requireAuth: true, allowedRoles: ["admin", "superadmin"] }),
 });
 
 router({
