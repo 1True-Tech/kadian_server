@@ -28,6 +28,9 @@ export default async function myInfo(event) {
         message: "User not found",
       };
     }
+    // update last seen
+    user.lastSeen = new Date();
+    await user.save();
 
     // 3. Return user profile
     return {

@@ -41,15 +41,26 @@ export const getAllUsers = async (event) => {
     .sort({ createdAt: -1 })
     .lean();
 
-  const sanitizedUsers = users.filter(user => user._id !== event.auth.userId).map((user) => ({
-    id: user._id.toString(),
-    email: user.email,
-    name: user.name || { first: "N/A", last: "N/A" },
-    role: user.role || "user",
-    isVerified: user.isVerified || false,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
-  }));
+  const now = new Date();
+  const days30 = 1000 * 60 * 60 * 24 * 30;
+  const sanitizedUsers = users
+    .filter((user) => user._id.toString() !== event.auth.userId.toString())
+    .map((user) => {
+      const lastSeen = user.lastSeen ? new Date(user.lastSeen) : null;
+      const isActive = lastSeen
+        ? now.getTime() - lastSeen.getTime() <= days30
+        : false;
+      return {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name || { first: "N/A", last: "N/A" },
+        role: user.role || "user",
+        isActive,
+        isVerified: user.isVerified || false,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    });
 
   return {
     statusCode: 200,
