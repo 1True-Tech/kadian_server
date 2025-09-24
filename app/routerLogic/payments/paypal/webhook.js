@@ -83,23 +83,69 @@ export default async function handleWebhook(event) {
       case 'PAYMENT.CAPTURE.COMPLETED': {
         const orderId = resource.supplementary_data?.related_ids?.order_id;
         const captureId = resource.id;
-        
-        // Update order status in database
-        await Order.updateOne(
-          { 'orderId': orderId },
-          { 
-            $set: { 
-              status: 'COMPLETED',
-              captureId,
-              updatedAt: new Date() 
-            } 
+
+        // Idempotency: check if this captureId already processed for this order
+        const existingOrder = await Order.findOne({ orderId });
+        if (existingOrder) {
+          if (
+            existingOrder.payment &&
+            existingOrder.payment.captureId === captureId &&
+            existingOrder.payment.status === 'COMPLETED'
+          ) {
+            logger.payment.info({ orderId, captureId }, 'PayPal capture already processed for order');
+            // Optionally record webhook event for audit
+            existingOrder.rawWebhookEvents = [
+              ...(existingOrder.rawWebhookEvents || []),
+              body,
+            ];
+            existingOrder.paymentHistory = [
+              ...(existingOrder.paymentHistory || []),
+              {
+                timestamp: new Date(),
+                status: 'COMPLETED',
+                provider: 'paypal',
+                amount: resource.amount?.value,
+                metadata: { captureId },
+                webhookEvent: 'PAYMENT.CAPTURE.COMPLETED',
+              },
+            ];
+            await existingOrder.save();
+            break;
           }
-        );
-        
-        logger.payment.info({ 
-          orderId,
-          captureId 
-        }, 'PayPal payment capture completed');
+
+          // Update order status and payment info
+          existingOrder.status = 'COMPLETED';
+          existingOrder.payment = {
+            ...(existingOrder.payment || {}),
+            provider: 'paypal',
+            captureId,
+            status: 'COMPLETED',
+            amount: resource.amount?.value,
+            currency: resource.amount?.currency_code,
+            payer: { email: resource.payer?.email_address },
+            paidAt: new Date(),
+            webhookProcessedAt: new Date(),
+          };
+          existingOrder.paymentHistory = [
+            ...(existingOrder.paymentHistory || []),
+            {
+              timestamp: new Date(),
+              status: 'COMPLETED',
+              provider: 'paypal',
+              amount: resource.amount?.value,
+              metadata: { captureId },
+              webhookEvent: 'PAYMENT.CAPTURE.COMPLETED',
+            },
+          ];
+          existingOrder.rawWebhookEvents = [
+            ...(existingOrder.rawWebhookEvents || []),
+            body,
+          ];
+          await existingOrder.save();
+          logger.payment.info({ orderId, captureId }, 'PayPal payment capture completed and order updated');
+        } else {
+          logger.payment.warn({ orderId }, 'OrderId from PayPal not found; skipping update');
+        }
         break;
       }
       

@@ -74,6 +74,10 @@ export default async function createCheckoutSession(event) {
     logger.payment.info({ sessionId: session.id }, 'Stripe checkout session created');
     
     return {
+      // Top-level fields for client convenience
+      id: session.id,
+      url: session.url,
+      // Standard envelope
       data: {
         sessionId: session.id,
         url: session.url

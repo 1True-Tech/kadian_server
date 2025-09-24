@@ -300,6 +300,7 @@ router({
 router({
   method: "post",
   path: "/payments/stripe/webhook",
+  middleware: [bodyParser.raw({ type: 'application/json' })],
   handler: withErrorHandling(payments.stripe.webhook),
 });
 
