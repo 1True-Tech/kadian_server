@@ -58,7 +58,7 @@ export const getAllUsers = async (event) => {
 
   await connectDbUsers();
   const users = await User.find({})
-    .select("email name role isVerified createdAt updatedAt lastSeen")
+    .select("email name role _createdAt _updatedAt lastSeen")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -74,7 +74,6 @@ export const getAllUsers = async (event) => {
         role: user.role || "user",
         lastSeen: toDate(user.lastSeen),
         isActive,
-        isVerified: user.isVerified || false,
         createdAt: user._createdAt,
         updatedAt: user._updatedAt,
       };
