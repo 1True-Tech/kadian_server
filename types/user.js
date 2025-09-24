@@ -1,6 +1,6 @@
 /**
  * User roles definition
- * @typedef {"admin"|"user"} UserRole
+ * @typedef {"admin"|"user" | "superadmin"} UserRole
  */
 
 /**
