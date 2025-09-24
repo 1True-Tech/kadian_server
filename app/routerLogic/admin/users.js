@@ -45,7 +45,7 @@ function toDate(lastSeen) {
     if (!isNaN(parsed)) return new Date(parsed);
   }
 
-  return null;
+  return lastSeen;
 }
 
 /**
@@ -58,7 +58,7 @@ export const getAllUsers = async (event) => {
 
   await connectDbUsers();
   const users = await User.find({})
-    .select("email name role isVerified createdAt updatedAt")
+    .select("email name role isVerified createdAt updatedAt lastSeen")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -75,10 +75,11 @@ export const getAllUsers = async (event) => {
         lastSeen: toDate(user.lastSeen),
         isActive,
         isVerified: user.isVerified || false,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt,
+        createdAt: user._createdAt,
+        updatedAt: user._updatedAt,
       };
     });
+
 
   return {
     statusCode: 200,
