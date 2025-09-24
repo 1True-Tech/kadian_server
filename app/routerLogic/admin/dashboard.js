@@ -128,14 +128,14 @@ async function calculateMetricsForRange(timeRange, baseUrl, event) {
           throw new Error(`Orders API returned status ${res.status}`);
         const data = await res.json();
 
-        if (!data || !data.orders)
+        if (!data || !data.data)
           throw new Error("Invalid orders response format");
         return data;
       }
     );
 
     // Filter orders within the time range
-    const orders = (ordersRes.orders || []).filter((order) => {
+    const orders = (ordersRes.data || []).filter((order) => {
       const orderDate = new Date(order.createdAt);
       return orderDate >= start && orderDate < end;
     });
@@ -152,7 +152,7 @@ async function calculateMetricsForRange(timeRange, baseUrl, event) {
       revenue,
       orders: orders.length,
       users: users.length,
-      allOrders: ordersRes.orders || [], // Return all orders for other calculations
+      allOrders: ordersRes.data || [], // Return all orders for other calculations
       allUsers: usersRes.data || [], // Return all users for other calculations
     };
   } catch (err) {
