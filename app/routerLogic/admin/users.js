@@ -20,7 +20,7 @@ import mongoose from "mongoose";
  * @throws {Error} If user is not admin
  */
 function validateAdmin(auth) {
-  if (!auth || !auth.userId || auth.userRole !== "admin") {
+  if (!auth || !auth.userId || auth.userRole !== "admin" || auth.userRole !== "superadmin") {
     const error = new Error("Unauthorized access");
     error.statusCode = 403;
     throw error;
@@ -105,7 +105,7 @@ export const updateUserRole = async (event) => {
     };
   }
 
-  if (!role || !["user", "admin", "manager"].includes(role)) {
+  if (!role || !["user", "admin"].includes(role)) {
     return {
       statusCode: 400,
       message: "Invalid role specified",
