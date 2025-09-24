@@ -65,6 +65,9 @@ const UserSchema = new Schema({
     type: Boolean,
     default: false,
   },
+  lastSeen:{
+    type: Date, default: Date.now
+  },
   resetPasswordTokenHash: String,
   resetPasswordExpires: Date,
   loginAttempts: { type: Number, default: 0 },
