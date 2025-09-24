@@ -20,7 +20,7 @@ import mongoose from "mongoose";
  * @throws {Error} If user is not admin
  */
 function validateAdmin(auth) {
-  if (!auth || !auth.userId || auth.userRole !== "admin" || auth.userRole !== "superadmin") {
+  if (!auth || !auth.userId ||( auth.userRole !== "admin" && auth.userRole !== "superadmin")) {
     const error = new Error("Unauthorized access");
     error.statusCode = 403;
     throw error;
