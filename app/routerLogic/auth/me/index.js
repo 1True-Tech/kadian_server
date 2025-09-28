@@ -1,3 +1,4 @@
+import address from "./address/index.js";
 import cart from "./cart/index.js";
 import myInfoDelete from "./myInfo.delete.js";
 import myInfo from "./myInfo.js";
@@ -9,7 +10,8 @@ const me = {
   myInfoDelete,
   myInfoPatch,
   cart,
-  wishlist
+  wishlist,
+  address
 };
 
 export default me;

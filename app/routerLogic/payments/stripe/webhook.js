@@ -11,210 +11,129 @@ import Order from "../../../../models/order.js";
  */
 export default async function stripeWebhook(event) {
   try {
-    const sig = event.headers['stripe-signature'];
-    
+    const sig = event.headers["stripe-signature"];
     if (!sig) {
-      logger.payment.warn('Missing Stripe signature');
-      return {
-        data: null,
-        statusCode: 400,
-        message: "Missing stripe-signature header"
-      };
+      logger.payment.warn("Missing Stripe signature");
+      return { data: null, statusCode: 400, message: "Missing stripe-signature header" };
     }
 
-    // Verify webhook signature
     let stripeEvent;
     try {
-      stripeEvent = stripe.webhooks.constructEvent(
-        event.rawBody,
-        sig,
-        STRIPE_WEBHOOK_SECRET
-      );
+      stripeEvent = stripe.webhooks.constructEvent(event.rawBody, sig, STRIPE_WEBHOOK_SECRET);
     } catch (err) {
-      logger.payment.warn({ error: err.message }, 'Invalid Stripe webhook signature');
-      return {
-        data: null,
-        statusCode: 400,
-        message: `Webhook signature verification failed: ${err.message}`
-      };
+      logger.payment.warn({ error: err.message }, "Invalid Stripe webhook signature");
+      return { data: null, statusCode: 400, message: `Webhook verification failed: ${err.message}` };
     }
 
-    // Connect to database
-    try {
-      await connectDbUsers();
-    } catch (error) {
-      logger.payment.error({ error: error.message }, 'Database connection error');
-      return {
-        data: null,
-        statusCode: 500,
-        message: "Database connection error"
-      };
-    }
+    await connectDbUsers();
 
-    // Handle specific events
     switch (stripeEvent.type) {
-      case 'checkout.session.completed': {
+      case "checkout.session.completed": {
         const session = stripeEvent.data.object;
+        const orderId = session.metadata?.orderId || null;
+        const customerEmail = session.customer_email || session.customer_details?.email;
 
-        // Retrieve session with line items and customer
-        const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
-          session.id,
-          { expand: ['line_items', 'customer'] }
-        );
-        const lineItems = sessionWithLineItems.line_items;
-        const customerEmail = session.customer_email || (sessionWithLineItems.customer && sessionWithLineItems.customer.email);
+        let existingOrder = orderId ? await Order.findById(orderId) : null;
 
-        const orderId = session.metadata && session.metadata.orderId;
+        const sessionWithLineItems = await stripe.checkout.sessions.retrieve(session.id);
+        console.log(sessionWithLineItems)
+        const lineItems = sessionWithLineItems.line_items?.data || [];
 
-        // If we have an orderId from metadata, try to update existing order payment status
-        if (orderId) {
-          const existingOrder = await Order.findById(orderId);
-          if (existingOrder) {
-            // Idempotency: if already processed for this session, skip
-            if (existingOrder.payment && existingOrder.payment.providerCheckoutSessionId === session.id && existingOrder.payment.status === 'paid') {
-              logger.payment.info({ orderId, sessionId: session.id }, 'Stripe checkout already processed for order');
-              break;
-            }
+        const items = lineItems.map((item) => ({
+          productId: item.price?.product?.metadata?.productId || "",
+          variantSku: item.price?.product?.metadata?.variantSku || "",
+          name: item.description || "",
+          quantity: item.quantity || 1,
+          price: ((item.amount_total || 0) / (item.quantity || 1)) / 100, // convert cents to unit
+        }));
 
-            // Retrieve payment intent details to enrich payment info
-            const paymentIntentId = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id;
-            let receiptUrl;
-            let paymentMethodDetails;
-            try {
-              if (paymentIntentId) {
-                const pi = await stripe.paymentIntents.retrieve(paymentIntentId, { expand: ['latest_charge', 'payment_method'] });
-                const charge = pi.latest_charge ? (typeof pi.latest_charge === 'string' ? await stripe.charges.retrieve(pi.latest_charge) : pi.latest_charge) : undefined;
-                const card = charge?.payment_method_details?.card || pi.payment_method?.card;
-                paymentMethodDetails = card ? {
-                  brand: card.brand,
-                  last4: card.last4,
-                  expMonth: card.exp_month,
-                  expYear: card.exp_year,
-                } : undefined;
-                receiptUrl = charge?.receipt_url;
-              }
-            } catch (pmErr) {
-              logger.payment.warn({ error: pmErr.message, paymentIntentId }, 'Failed to retrieve payment intent details');
-            }
+        const paymentIntentId = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
 
-            // Update order fields
-            existingOrder.status = 'paid';
-            existingOrder.payment = {
-              ...(existingOrder.payment || {}),
-              method: existingOrder.payment?.method || 'card',
-              provider: 'stripe',
-              reference: paymentIntentId || session.id,
-              amount: session.amount_total, // store in smallest currency unit (cents)
-              currency: (session.currency || existingOrder.currency || 'USD').toUpperCase(),
-              status: 'paid',
-              providerOrderId: undefined,
-              providerPaymentId: paymentIntentId || undefined,
-              providerCheckoutSessionId: session.id,
-              providerClientSecret: session.client_secret || undefined,
-              paymentMethod: paymentMethodDetails,
-              payer: { email: customerEmail },
-              receiptUrl,
-              paidAt: new Date(),
-              webhookProcessedAt: new Date(),
-            };
+        const payment = {
+          method: "card",
+          provider: "stripe",
+          reference: paymentIntentId || session.id,
+          providerPaymentId: paymentIntentId || undefined,
+          providerCheckoutSessionId: session.id,
+          status: "paid",
+          currency: (session.currency || "USD").toUpperCase(),
+          amount: (session.amount_total || 0) / 100, // cents → unit
+          paidAt: new Date(),
+          webhookProcessedAt: new Date(),
+          paymentMethod: session.payment_method_types ? { brand: "card" } : undefined,
+          payer: { email: customerEmail },
+          receiptUrl: session.payment_intent ? undefined : session.url,
+        };
 
-            existingOrder.paymentHistory = [
-              ...(existingOrder.paymentHistory || []),
+        if (existingOrder) {
+          existingOrder.status = "paid";
+          existingOrder.items = items;
+          existingOrder.payment = payment;
+          existingOrder.paymentHistory = [
+            ...(existingOrder.paymentHistory || []),
+            {
+              timestamp: new Date(),
+              status: "paid",
+              provider: "stripe",
+              amount: payment.amount,
+              metadata: { sessionId: session.id, paymentIntentId },
+              webhookEvent: "checkout.session.completed",
+            },
+          ];
+          existingOrder.rawWebhookEvents = [...(existingOrder.rawWebhookEvents || []), stripeEvent];
+          existingOrder.totalAmount = payment.amount;
+          existingOrder.currency = payment.currency;
+
+          await existingOrder.save();
+          logger.payment.info({ orderId: existingOrder._id }, "Order updated to paid");
+        } else {
+          const newOrder = new Order({
+            userId: null,
+            guestId: null,
+            status: "paid",
+            items,
+            payment,
+            paymentHistory: [
               {
                 timestamp: new Date(),
-                status: 'paid',
-                provider: 'stripe',
-                amount: session.amount_total,
+                status: "paid",
+                provider: "stripe",
+                amount: payment.amount,
                 metadata: { sessionId: session.id, paymentIntentId },
-                webhookEvent: 'checkout.session.completed',
+                webhookEvent: "checkout.session.completed",
               },
-            ];
+            ],
+            rawWebhookEvents: [stripeEvent],
+            shippingAddress: session.shipping ? {
+              line1: session.shipping.address.line1,
+              line2: session.shipping.address.line2 || "",
+              city: session.shipping.address.city,
+              state: session.shipping.address.state,
+              postal: session.shipping.address.postal_code,
+              country: session.shipping.address.country,
+            } : null,
+            customerInfo: customerEmail ? {
+              name: { first: session.customer_details?.name || "", last: "" },
+              email: customerEmail,
+              phone: session.customer_details?.phone || "",
+            } : null,
+            totalAmount: payment.amount,
+            currency: (session.currency || "USD").toUpperCase(),
+          });
 
-            existingOrder.rawWebhookEvents = [
-              ...(existingOrder.rawWebhookEvents || []),
-              stripeEvent,
-            ];
-
-            await existingOrder.save();
-            logger.payment.info({ orderId: existingOrder._id, sessionId: session.id }, 'Order updated to paid from Stripe checkout');
-            break;
-          } else {
-            logger.payment.warn({ orderId }, 'OrderId from Stripe metadata not found; falling back to creating new order');
-          }
+          await newOrder.save();
+          logger.payment.info({ orderId: newOrder._id }, "New order created from Stripe webhook");
         }
+        break;
+      }
 
-        // Fallback: Create order in database if no orderId provided
-        const order = new Order({
-          payment: {
-            method: 'card',
-            provider: 'stripe',
-            reference: (typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id) || session.id,
-            amount: session.amount_total,
-            currency: (session.currency || 'USD').toUpperCase(),
-            status: 'paid',
-            providerCheckoutSessionId: session.id,
-            providerPaymentId: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id,
-            paidAt: new Date(),
-          },
-          status: 'paid',
-          items: (lineItems?.data || []).map(item => ({
-            name: item.description,
-            quantity: item.quantity,
-            price: (item.amount_total || 0) / (item.quantity || 1),
-            productId: item.price?.product?.metadata?.productId,
-            variantSku: item.price?.product?.metadata?.variantSku,
-          })),
-          shippingAddress: session.shipping ? {
-            line1: session.shipping.address.line1,
-            line2: session.shipping.address.line2 || '',
-            city: session.shipping.address.city,
-            state: session.shipping.address.state,
-            postal: session.shipping.address.postal_code,
-            country: session.shipping.address.country,
-          } : null,
-          customerInfo: customerEmail ? {
-            name: { first: session.customer_details?.name || '', last: '' },
-            email: customerEmail,
-            phone: session.customer_details?.phone || '',
-          } : null,
-          totalAmount: session.amount_total,
-          currency: (session.currency || 'USD').toUpperCase(),
-        });
-        await order.save();
-        logger.payment.info({ orderId: order._id, sessionId: session.id }, 'Order created from Stripe checkout');
-        break;
-      }
-      
-      case 'payment_intent.succeeded': {
-        const paymentIntent = stripeEvent.data.object;
-        logger.payment.info({ paymentIntentId: paymentIntent.id }, 'Payment intent succeeded');
-        break;
-      }
-      
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = stripeEvent.data.object;
-        logger.payment.warn({ 
-          paymentIntentId: paymentIntent.id,
-          error: paymentIntent.last_payment_error && paymentIntent.last_payment_error.message
-        }, 'Payment failed');
-        break;
-      }
-      
       default:
-        logger.payment.info({ type: stripeEvent.type }, 'Unhandled Stripe event');
+        logger.payment.info({ type: stripeEvent.type }, "Unhandled Stripe event");
     }
 
-    return {
-      data: { received: true },
-      statusCode: 200,
-      message: "Webhook received successfully"
-    };
-  } catch (error) {
-    logger.payment.error({ error: error.message, stack: error.stack }, 'Error processing webhook');
-    return {
-      data: null,
-      statusCode: 500,
-      message: "Error processing webhook"
-    };
+    return { data: { received: true }, statusCode: 200, message: "Webhook processed successfully" };
+  } catch (err) {
+    logger.payment.error({ error: err.message, stack: err.stack }, "Webhook processing error");
+    return { data: null, statusCode: 500, message: "Webhook processing error" };
   }
 }

@@ -128,6 +128,29 @@ router({
   handler: withErrorHandling(auth.me.myInfoDelete, { requireAuth: true }),
 });
 
+// address
+router({
+  method: "get",
+  path: "/auth/me/address",
+  handler: withErrorHandling(auth.me.address.get, { requireAuth: true }),
+});
+router({
+  method: "patch",
+  path: "/auth/me/address",
+  handler: withErrorHandling(auth.me.address.patch, { requireAuth: true }),
+});
+router({
+  method: "post",
+  path: "/auth/me/address",
+  handler: withErrorHandling(auth.me.address.post, { requireAuth: true }),
+});
+
+router({
+  method: "delete",
+  path: "/auth/me/address",
+  handler: withErrorHandling(auth.me.address.delete, { requireAuth: true }),
+});
+
 // cart
 router({
   method: "get",
@@ -308,19 +331,22 @@ router({
 // router({
 //   method: "post",
 //   path: "/payments/paypal/create-order",
-//   handler: withErrorHandling(payments.paypal.createOrder),
+//   middleware:payments.paypal.createOrder.middlewares,
+//   handler: withErrorHandling(payments.paypal.createOrder.handler),
 // });
 
 // router({
 //   method: "post",
 //   path: "/payments/paypal/capture-order",
-//   handler: withErrorHandling(payments.paypal.captureOrder),
+//   middleware:payments.paypal.captureOrder.middlewares,
+//   handler: withErrorHandling(payments.paypal.captureOrder.handler),
 // });
 
 // router({
 //   method: "post",
 //   path: "/payments/paypal/webhook",
-//   handler: withErrorHandling(payments.paypal.webhook),
+//   middleware:payments.paypal.webhook.middlewares,
+//   handler: withErrorHandling(payments.paypal.webhook.handler),
 // });
 
 // Starting the server

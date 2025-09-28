@@ -66,7 +66,7 @@
 
 /**
  * @typedef {Object} OrderDetailResponse
- * @property {OrdersResponseDetails} [order] - Order details
+ * @property {OrdersResponseDetails} [data] - Order details
  */
 
 /**

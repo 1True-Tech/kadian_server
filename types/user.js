@@ -3,14 +3,27 @@
  * @typedef {"admin"|"user" | "superadmin"} UserRole
  */
 
+const d = {
+    line1: a.line1,
+      line2: a.line2,
+      city: a.city,
+      country: a.country,
+      state: a.state,
+      postal: a.postal,
+      primary: a.primary,
+      id: a.id,
+}
 /**
  * Address type definition
  * @typedef {Object} Address
- * @property {string} street - Street address
- * @property {string} city - City name
- * @property {string} state - State or province
- * @property {string} postalCode - Postal/ZIP code
- * @property {string} country - Country name
+ * @property {string} line1 - address 1
+ * @property {string} line2 - address 2
+ * @property {string} city - city or province
+ * @property {string} country - country name
+ * @property {string} state - state
+ * @property {string} postal - postal code or zipcode
+ * @property {string} primary - is primary address
+ * @property {string} id - id
  */
 
 /**
