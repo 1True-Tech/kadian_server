@@ -328,26 +328,26 @@ router({
 });
 
 // Payment routes - PayPal
-// router({
-//   method: "post",
-//   path: "/payments/paypal/create-order",
-//   middleware:payments.paypal.createOrder.middlewares,
-//   handler: withErrorHandling(payments.paypal.createOrder.handler),
-// });
+router({
+  method: "post",
+  path: "/payments/paypal/create-order",
+  middleware:payments.paypal.createOrder.middlewares,
+  handler: withErrorHandling(payments.paypal.createOrder.handler),
+});
 
-// router({
-//   method: "post",
-//   path: "/payments/paypal/capture-order",
-//   middleware:payments.paypal.captureOrder.middlewares,
-//   handler: withErrorHandling(payments.paypal.captureOrder.handler),
-// });
+router({
+  method: "post",
+  path: "/payments/paypal/capture-order",
+  middleware:payments.paypal.captureOrder.middlewares,
+  handler: withErrorHandling(payments.paypal.captureOrder.handler),
+});
 
-// router({
-//   method: "post",
-//   path: "/payments/paypal/webhook",
-//   middleware:payments.paypal.webhook.middlewares,
-//   handler: withErrorHandling(payments.paypal.webhook.handler),
-// });
+router({
+  method: "post",
+  path: "/payments/paypal/webhook",
+  middleware:payments.paypal.webhook.middlewares,
+  handler: withErrorHandling(payments.paypal.webhook.handler),
+});
 
 // Starting the server
 app.listen(PORT, () => {
