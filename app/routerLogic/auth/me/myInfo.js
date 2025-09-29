@@ -1,6 +1,9 @@
 import processUserData from "../../../../lib/data-processors/process-user-data.js";
 import connectDbUsers from "../../../../lib/utils/mongo/connect-db-users.js";
+import connectDbOrders from "../../../../lib/utils/mongo/connect-db-orders.js";
 import User from "../../../../models/user.js";
+import Order from "../../../../models/order.js";
+import parseOrderItem from "../../../../lib/utils/parseOrderItem.js";
 
 /**
  * @param {import("../../../../lib/utils/withErrorHandling").RouteEvent} event
@@ -8,6 +11,8 @@ import User from "../../../../models/user.js";
  */
 export default async function myInfo(event) {
   const auth = event.auth;
+  const includeOrders = event.query?.include_orders === 'true';
+  
   // Connect to MongoDB
   try {
     await connectDbUsers();
@@ -32,12 +37,32 @@ export default async function myInfo(event) {
     user.lastSeen = new Date();
     await user.save();
 
-    // 3. Return user profile
+    // Process user data
+    const userData = processUserData(user);
+    
+    // 3. Include orders if requested
+    if (includeOrders) {
+      try {
+        await connectDbOrders();
+        const orders = await Order.find({ userId: auth.userId }).sort({
+          createdAt: -1,
+        });
+        
+        // Add orders to user data
+        userData.orders = parseOrderItem(orders);
+      } catch (orderError) {
+        console.error("Error fetching orders:", orderError);
+        // Continue without orders if there's an error
+        userData.orders = [];
+      }
+    }
+
+    // Return user profile with optional orders
     return {
       statusCode: 200,
       status: "good",
       message: "User profile retrieved successfully",
-      data:processUserData(user),
+      data: userData,
     };
   } catch (error) {
     throw new Error(

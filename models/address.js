@@ -9,8 +9,9 @@ const address = new Schema({
   city:    { type: String, required: true },
   state:   { type: String, required: true },
   postal:  { type: String, required: true },
-  country: { type: String, required: true }
-});
+  country: { type: String, required: true },
+  primary: {type: Boolean, default: false}
+}, {_id:true});
 
 
 

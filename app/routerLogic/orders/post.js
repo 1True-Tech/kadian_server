@@ -10,36 +10,32 @@ import env from "../../../lib/constants/env.js";
 
 /**
  * Remove ordered items from user's cart
- * @param {string} userId - User ID
- * @param {Array<{productId: string, variantSku: string}>} orderedItems - Items that were ordered
  */
 async function removeFromCart(userId, orderedItems) {
   try {
     const user = await User.findById(userId);
     if (!user || !user.cart) return;
 
-    // Filter out items that were ordered
-    user.cart = user.cart.filter(cartItem => 
-      !orderedItems.some(orderItem => 
-        orderItem.productId === cartItem.productId && 
-        orderItem.variantSku === cartItem.variantSku
-      )
+    user.cart = user.cart.filter(
+      (cartItem) =>
+        !orderedItems.some(
+          (orderItem) =>
+            orderItem.productId === cartItem.productId &&
+            orderItem.variantSku === cartItem.variantSku
+        )
     );
 
     await user.save();
   } catch (err) {
-    console.error('Error removing items from cart:', err);
-    // Don't throw error as this is a secondary operation
+    console.error("Error removing items from cart:", err);
   }
 }
 
 /**
-  * POST /orders - Create a new order
- * @param {import("../../../lib/utils/withErrorHandling.js").RouteEvent} event
+ * POST /orders - Create a new order
  */
 export async function post(event) {
   const baseUrl = event.req.protocol + "://" + event.req.get("host");
-
   const auth = event.auth;
   if (!auth) {
     return {
@@ -51,11 +47,18 @@ export async function post(event) {
   const { userId, userRole } = auth;
   const isGuest = !userRole || userRole === "guest";
 
-  const { object: body, hasError, errorMessage } = objectErrorBoundary(
+  const {
+    object: body,
+    hasError,
+    errorMessage,
+  } = objectErrorBoundary(
     event.body,
     [
       "items",
-      "shippingAddress",
+      ...(event.body.payment.method === "transfer" ||
+      event.body.payment.method === "delivery"
+        ? ["shippingAddress"]
+        : []),
       "payment.method",
       ...(isGuest
         ? [
@@ -80,7 +83,6 @@ export async function post(event) {
 
   const { items, shippingAddress, customerInfo, payment } = body;
 
-  // Validate items structure
   if (!Array.isArray(items) || items.length === 0) {
     return {
       statusCode: 400,
@@ -89,21 +91,31 @@ export async function post(event) {
     };
   }
 
-  // Validate each item has required fields
   for (const item of items) {
     if (!item.productId || !item.variantSku || !item.quantity || !item.price) {
       return {
         statusCode: 400,
         status: "bad",
-        message: "Each item must have productId, variantSku, quantity, and price",
+        message:
+          "Each item must have productId, variantSku, quantity, and price",
       };
     }
+  }
+
+  const requiresShipping =
+    payment.method === "transfer" || payment.method === "delivery";
+  if (requiresShipping && (!shippingAddress || !shippingAddress.line1)) {
+    return {
+      statusCode: 400,
+      status: "bad",
+      message: "Shipping address is required",
+    };
   }
 
   const customerInfoObj = await fetchCustomerInfo(
     isGuest,
     customerInfo,
-    event.auth?.token || "",
+    event.req.headers["authorization"] || "",
     baseUrl
   );
 
@@ -112,83 +124,88 @@ export async function post(event) {
     0
   );
 
-  const idempotencyKey = event.req.headers["x-idempotency-key"] || event.req.headers["idempotency-key"] || undefined;
+  const idempotencyKey =
+    event.req.headers["x-idempotency-key"] ||
+    event.req.headers["idempotency-key"] ||
+    undefined;
 
   const paymentObj = {
     method: payment.method,
     amount: totalAmount,
-    status: payment.method === "transfer" ? "pending" : "initiated",
-    idempotencyKey: typeof idempotencyKey === "string" ? idempotencyKey : Array.isArray(idempotencyKey) ? idempotencyKey[0] : undefined,
+    status:
+      payment.method === "transfer" || payment.method === "delivery"
+        ? "pending"
+        : "initiated",
+    idempotencyKey:
+      typeof idempotencyKey === "string"
+        ? idempotencyKey
+        : Array.isArray(idempotencyKey)
+        ? idempotencyKey[0]
+        : undefined,
   };
-  if (payment.method === "transfer") {
-    if(payment.proof){try {
-      // Connect to images database first
-      getDbConnection("images");
-      
-      // Extract the mimetype from the base64 string
-      const mimeMatch = payment.proof.match(/^data:([^;]+);base64,/);
-      const mimetype = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-      
-      // Clean the base64 string (remove data:image/jpeg;base64, prefix)
-      const cleanBase64 = payment.proof.replace(/^data:([^;]+);base64,/, '');
 
-      // Create and save the image
+  if (payment.method === "transfer") {
+    if (!payment.proof) {
+      return {
+        statusCode: 400,
+        status: "bad",
+        message: "Payment proof required for transfer",
+      };
+    }
+    try {
+      getDbConnection("images");
+      const mimeMatch = payment.proof.match(/^data:([^;]+);base64,/);
+      const mimetype = mimeMatch ? mimeMatch[1] : "image/jpeg";
+      const cleanBase64 = payment.proof.replace(/^data:([^;]+);base64,/, "");
       const image = new Image({
         filename: `payment-proof-${Date.now()}`,
         data: cleanBase64,
-        mimetype: mimetype
+        mimetype,
       });
-
-      // Explicitly wait for the save
       const savedImage = await image.save();
-
-      // Store the image reference in payment object
       paymentObj.proof = {
         imageId: savedImage._id,
-        filename: savedImage.filename
+        filename: savedImage.filename,
       };
     } catch (err) {
-      console.error('Image save error:', err); // Debug log
+      console.error("Image save error:", err);
       return {
         statusCode: 500,
         status: "bad",
         message: "Payment proof upload failed: " + err.message,
       };
-    }}else{
-      return {
-        statusCode: 400,
-        status: "bad",
-        message: "Payment proof file not available",
-      };
     }
   }
 
-  const orderCurrency = payment.method === "card" ? (env.STRIPE_CURRENCY || "USD").toUpperCase() : "NGN";
+  const orderCurrency =
+    payment.method === "card"
+      ? (env.STRIPE_CURRENCY || "USD").toUpperCase()
+      : "NGN";
 
-  // Create the order object matching the schema
   const orderObj = {
     userId: isGuest ? null : userId,
     guestId: isGuest ? userId : null,
-    items: items.map(item => ({
+    items: items.map((item) => ({
       productId: item.productId,
       variantSku: item.variantSku,
       quantity: item.quantity,
-      price: item.price
+      price: item.price,
     })),
-    shippingAddress,
+    shippingAddress: requiresShipping ? shippingAddress : null,
     status: "pending",
     customerInfo: customerInfoObj,
     payment: paymentObj,
-    totalAmount: totalAmount,
+    totalAmount,
     currency: orderCurrency,
   };
 
   try {
     await connectDbOrders();
 
-    // Idempotency: return existing order if idempotencyKey was provided and already processed
     if (orderObj.payment.idempotencyKey) {
-      const existing = await Order.findOne({ "payment.idempotencyKey": orderObj.payment.idempotencyKey });
+      const existing = await Order.findOne({
+        "payment.idempotencyKey": orderObj.payment.idempotencyKey,
+      });
       if (existing) {
         return {
           status: "good",
@@ -205,7 +222,6 @@ export async function post(event) {
 
     const order = new Order(orderObj);
 
-    // Update inventory for each item
     for (const item of items) {
       const { variantSku, quantity, productId } = item;
       const inventoryStockUpdate = await fetch(
@@ -228,11 +244,7 @@ export async function post(event) {
     }
 
     await order.save();
-
-    // Remove ordered items from user's cart if not a guest
-    if (!isGuest) {
-      await removeFromCart(userId, items);
-    }
+    if (!isGuest) await removeFromCart(userId, items);
 
     return {
       status: "good",

@@ -41,7 +41,7 @@ export async function getOrder(event) {
     return {
       status: "good",
       statusCode: 200,
-      order: parseOrderInfo(order),
+      data: parseOrderInfo(order),
       message: "Order fetched successfully",
     };
   } catch (error) {
