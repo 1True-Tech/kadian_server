@@ -232,6 +232,11 @@ router({
   handler: withErrorHandling(orders.orderItem.getOrder, { requireAuth: true }),
 });
 router({
+  method: "patch",
+  path: "/orders/:id",
+  handler: withErrorHandling(orders.orderItem.updateOrder, { requireAuth: true }),
+});
+router({
   method: "delete",
   path: "/orders/:id/cancel",
   handler: withErrorHandling(orders.orderItem.deleteOrder, { requireAuth: true }),

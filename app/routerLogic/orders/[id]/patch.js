@@ -14,6 +14,7 @@ export async function updateOrder(event) {
     objectErrorBoundary(event.params, ["id"], {
       label: "Path parameter",
     });
+    console.log(validParams)
 
   if (hasParamsError || !validParams) {
     return {

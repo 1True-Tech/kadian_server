@@ -62,7 +62,7 @@ export default async function captureOrder(event) {
         captureId: capture.id,
         status: captureResult.status,
         amount: {
-          value: capture.amount.value,
+          value: capture.amount.value.toFixed(2),
           currency: capture.amount.currency_code
         },
         customerEmail: customData.customerEmail,
