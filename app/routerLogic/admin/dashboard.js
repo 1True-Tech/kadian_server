@@ -98,8 +98,8 @@ function getDateRanges(period) {
  */
 async function calculateRevenue(orders) {
   return orders.reduce((total, order) => {
-    if (order.payment && order.payment.status === "paid") {
-      return total + order.payment.amount;
+    if (order.status && order.status === "paid") {
+      return total + order.totalAmount;
     }
     return total;
   }, 0);
@@ -180,7 +180,7 @@ function calculateChange(current, previous) {
  * @returns {string} Formatted amount in dollars
  */
 function formatCurrency(amount) {
-  return `$${amount}`;
+  return `$${amount.toFixed(2)}`;
 }
 
 /**

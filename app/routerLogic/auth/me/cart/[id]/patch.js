@@ -76,7 +76,7 @@ export default async function patch(event) {
     const updatedUserCart = await User.findOneAndUpdate(
       {
         _id: event.auth?.userId,
-        "cart.productId": id,
+        "cart._id": id,
       },
       updateQuery,
       {
@@ -111,7 +111,6 @@ export default async function patch(event) {
       data: updatedCart,
     };
   } catch (error) {
-    console.log(error);
 
     if (error instanceof Error) {
       if (error.name === "ValidationError") {
