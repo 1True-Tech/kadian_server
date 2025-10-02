@@ -26,6 +26,7 @@ import { healthLogic } from "./routerLogic/index.js";
 import inventory from "./routerLogic/inventory/index.js";
 import orders from "./routerLogic/orders/index.js";
 import payments from "./routerLogic/payments/index.js";
+import webhooks from "./routerLogic/webhooks/index.js";
 
 // App setup
 const app = express();
@@ -110,6 +111,32 @@ router({
   path: "/auth/register",
   handler: withErrorHandling(auth.register),
 });
+router({
+  method: "post",
+  path: "/auth/refresh",
+  handler: withErrorHandling(auth.refresh),
+});
+router({
+  method: "post",
+  path: "/auth/forgot-password",
+  handler: withErrorHandling(auth.forgotPassword),
+});
+router({
+  method: "post",
+  path: "/auth/reset-password",
+  handler: withErrorHandling(auth.resetPassword),
+});
+router({
+  method: "post",
+  path: "/auth/me/password",
+  handler: withErrorHandling(auth.me.changePassword, { requireAuth: true }),
+});
+
+router({
+  method: "post",
+  path: "/auth/me/notifications",
+  handler: withErrorHandling(auth.me.updateNotifications, { requireAuth: true }),
+});
 // user info
 router({
   method: "get",
@@ -169,6 +196,13 @@ router({
   handler: withErrorHandling(auth.me.cart.myCartDelete, { requireAuth: true }),
 });
 // cart-item
+
+// Webhook endpoint for notifications
+router({
+  method: "post",
+  path: "/webhooks/notifications",
+  handler: withErrorHandling(webhooks.handleWebhookNotification),
+});
 router({
   method: "get",
   path: "/auth/me/cart/:id",

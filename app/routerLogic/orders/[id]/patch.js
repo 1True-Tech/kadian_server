@@ -2,6 +2,7 @@ import connectDbOrders from "../../../../lib/utils/mongo/connect-db-orders.js";
 import Order from "../../../../models/order.js";
 import objectErrorBoundary from "../../../../lib/utils/objectErrorBoundary.js";
 import parseOrderInfo from "../../../../lib/utils/parseOrderInfo.js";
+import webhookService from "../../../../lib/utils/webhookService.js";
 
 /**
  * Update order details
@@ -73,6 +74,15 @@ export async function updateOrder(event) {
         message: "Order not found",
       };
     }
+
+    // Trigger notification for order status update
+    webhookService.processEvent('order.status_updated', {
+      orderId: updated._id.toString(),
+      userId: updated.userId,
+      customerInfo: updated.customerInfo,
+      status: updated.status,
+      previousStatus: validBody.status
+    }).catch(err => console.error('Failed to send order status update notification:', err));
 
     // 5. Return the updated order info
     return {

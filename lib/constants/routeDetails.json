@@ -4,6 +4,12 @@
     "version": "1.0.0",
     "base_url": "http://localhost:8000",
     "description": "Comprehensive API documentation for the Kadian e-commerce server",
+    "server_management": {
+      "health_monitoring": "Real-time server health metrics including memory usage, CPU load, and uptime",
+      "error_tracking": "Tracks and displays the most recent server errors",
+      "performance_metrics": "Request success rate and total request count",
+      "system_resources": "CPU cores, memory allocation, and process information"
+    },
     "authentication": {
       "type": "Bearer Token",
       "header": "Authorization: Bearer <token>",

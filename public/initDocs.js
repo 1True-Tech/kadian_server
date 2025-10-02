@@ -12,6 +12,11 @@
       return;
     }
 
+    // Render server health metrics if available
+    if (window.renderServerHealth) {
+      window.renderServerHealth(docs);
+    }
+
     window.renderDocs(docs);
     if (docs.data) {
       const metaPanel = window.renderApiMetadata(docs.data);

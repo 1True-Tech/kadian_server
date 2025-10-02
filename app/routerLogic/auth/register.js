@@ -9,6 +9,7 @@
 import connectDbUsers from "../../../lib/utils/mongo/connect-db-users.js";
 import objectErrorBoundary from "../../../lib/utils/objectErrorBoundary.js";
 import User from "../../../models/user.js";
+import webhookService from "../../../lib/utils/webhookService.js";
 
 /**
  * @param {Omit<import("../../../lib/utils/routeHandler.js").RouteEvent, 'body'> & { body: RegisterBody }} event
@@ -77,10 +78,17 @@ export default async function register(event) {
     await newUser.save();
 
     const authTokens = newUser.generateAuthToken();
+    
+    // Trigger notifications for new user registration
+    webhookService.processEvent('user.created', {
+      userId: newUser._id.toString(),
+      username: newUser.username,
+      email: newUser.email,
+      name: newUser.name
+    }).catch(err => console.error('Failed to send registration notification:', err));
 
     return {
       data: authTokens,
-
       statusCode: 201,
       status: "good",
       message: "Registration successful",
