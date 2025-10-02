@@ -7,6 +7,7 @@ import Image from "../../../models/image.js";
 import User from "../../../models/user.js";
 import getDbConnection from "../../../lib/utils/mongo/get-db-connection.js";
 import env from "../../../lib/constants/env.js";
+import webhookService from "../../../lib/utils/webhookService.js";
 
 /**
  * Remove ordered items from user's cart
@@ -245,6 +246,16 @@ export async function post(event) {
 
     await order.save();
     if (!isGuest) await removeFromCart(userId, items);
+
+    // Trigger notifications for new order
+    webhookService.processEvent('order.created', {
+      orderId: order._id.toString(),
+      userId: order.userId,
+      customerInfo: order.customerInfo,
+      items: order.items,
+      total: order.total,
+      status: order.status
+    }).catch(err => console.error('Failed to send order notification:', err));
 
     return {
       status: "good",
