@@ -2,52 +2,74 @@ import User from "../../../models/user.js";
 
 /**
  * Change user password
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- * @returns {Object} Response with success or error message
+ * @param {import("../../../lib/utils/withErrorHandling.js").RouteEvent} event - Express response object
+ * @returns {Partial<generalResponse>}
  */
-const changePassword = async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id;
+const changePassword = async (event) => {
+  const { currentPassword, newPassword } = event.body || {};
+  const userId = event.auth.userId;
 
-    // Validate input
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ message: 'Current password and new password are required' });
-    }
-
-    // Find user
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Verify current password
-    const isMatch = await user.comparePassword(currentPassword);
-    if (!isMatch) {
-      return res.status(400).json({ message: 'Current password is incorrect' });
-    }
-
-    // Password strength validation
-    if (newPassword.length < 8) {
-      return res.status(400).json({ message: 'Password must be at least 8 characters' });
-    }
-
-    if (!/(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/.test(newPassword)) {
-      return res.status(400).json({ 
-        message: 'Password must contain at least one uppercase letter, one number, and one special character' 
-      });
-    }
-
-    // Set new password
-    await user.setPassword(newPassword);
-    await user.save();
-
-    return res.status(200).json({ message: 'Password changed successfully' });
-  } catch (error) {
-    console.error('Change password error:', error);
-    return res.status(500).json({ message: 'Server error' });
+  // Validate input
+  if (!currentPassword || !newPassword) {
+    return {
+      data: null,
+      statusCode: 400,
+      status: "bad",
+      message: "Current password and new password are required",
+    };
   }
+
+  // Find user
+  const user = await User.findById(userId);
+  if (!user) {
+    return {
+      data: null,
+      statusCode: 404,
+      status: "bad",
+      message: "User not found",
+    };
+  }
+
+  // Verify current password
+  const isMatch = await user.comparePassword(currentPassword);
+  if (!isMatch) {
+    return {
+      data: null,
+      statusCode: 400,
+      status: "bad",
+      message: "Current password is incorrect",
+    };
+  }
+
+  // Password strength validation
+  if (newPassword.length < 8) {
+    return {
+      data: null,
+      statusCode: 400,
+      status: "bad",
+      message: "Password must be at least 8 characters",
+    };
+  }
+
+  if (!/(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/.test(newPassword)) {
+    return {
+      data: null,
+      statusCode: 400,
+      status: "bad",
+      message: "Password must contain at least one uppercase letter, one number, and one special character",
+    };
+  }
+
+  // Set new password
+  user.password = newPassword;
+  await user.save();
+
+  return {
+    data: null,
+    statusCode: 200,
+    status: "good",
+    message: "Password changed successfully",
+  };
 };
 
 export default changePassword;

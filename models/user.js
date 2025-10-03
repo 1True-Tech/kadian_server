@@ -79,7 +79,7 @@ UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.pre("save", function (next) {
   if (this.isModified("password")) {
     if (!this.password) throw new Error("password is not available");
-    this.setPassword(this.password);
+    this.password = hash.encrypt(this.password);
   }
   next();
 });
@@ -87,8 +87,7 @@ UserSchema.pre("save", function (next) {
 // Instance Methods
 // Hash & set password: use this to handle the hashing logic
 UserSchema.methods.setPassword = function (plain) {
-  // run your encrypting logic here
-  this.password = hash.encrypt(plain);
+  this.password = plain;
 };
 
 UserSchema.methods.comparePassword = function (candidate) {
@@ -146,6 +145,23 @@ UserSchema.methods.incrementFailedLogin = async function () {
     this.lockUntil = Date.now() + 2 * 60 * 60_000; // 2 hours
   }
   await this.save();
+};
+
+UserSchema.methods.generateResetToken = function () {
+  const token = randomBytes(20).toString("hex");
+  this.resetPasswordTokenHash = hash.encrypt(token);
+  this.resetPasswordExpires = new Date(Date.now() + 3600_000); // 1 hour
+  return token;
+};
+
+UserSchema.methods.verifyResetToken = function (token) {
+  if (
+    !this.resetPasswordExpires ||
+    Date.now() > this.resetPasswordExpires.getTime()
+  ) {
+    return false;
+  }
+  return hash.verifyEncrypted(token, this.resetPasswordTokenHash || "");
 };
 
 // Virtual: isLocked
