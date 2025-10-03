@@ -36,6 +36,8 @@ async function removeFromCart(userId, orderedItems) {
  * @param {import("../../../lib/utils/withErrorHandling.js").RouteEvent} event
  */
 export async function post(event) {
+    const baseUrl = event.req.protocol + "://" + event.req.get("host");
+
   const auth = event.auth;
   if (!auth) {
     return {
