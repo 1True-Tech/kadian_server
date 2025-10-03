@@ -72,6 +72,17 @@ const UserSchema = new Schema({
   resetPasswordExpires: Date,
   loginAttempts: { type: Number, default: 0 },
   lockUntil: Number,
+  settings: {
+    security: {
+      twoFactorAuth: { type: Boolean, default: false },
+    },
+    notifications: {
+      orderUpdates: { type: Boolean, default: true },
+      promotions: { type: Boolean, default: true },
+      newsletter: { type: Boolean, default: false },
+      productAlerts: { type: Boolean, default: true },
+    },
+  },
 });
 UserSchema.index({ email: 1 }, { unique: true });
 
