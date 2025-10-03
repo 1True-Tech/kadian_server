@@ -33,7 +33,7 @@ async function removeFromCart(userId, orderedItems) {
 }
 
 /**
- * POST /orders - Create a new order
+ * @param {import("../../../lib/utils/withErrorHandling.js").RouteEvent} event
  */
 export async function post(event) {
   const baseUrl = event.req.protocol + "://" + event.req.get("host");
@@ -45,7 +45,7 @@ export async function post(event) {
       message: "Authentication required",
     };
   }
-  const { userId, userRole } = auth;
+  const { userId, userRole, token} = auth;
   const isGuest = !userRole || userRole === "guest";
 
   const {
