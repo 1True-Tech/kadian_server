@@ -2,6 +2,7 @@ import User from "../../../models/user.js";
 import { z } from "zod";
 import { sendPasswordResetEmail } from "../../../lib/utils/emailService.js";
 import logger from "../../../lib/utils/logger.js";
+import env from "../../../lib/constants/env.js";
 
 /**
  * Handle forgot password request
@@ -37,7 +38,7 @@ export default async function forgotPassword(event) {
     await user.save();
 
     // 5. Create reset URL
-    const resetUrl = `${event.req.headers.origin || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `${env.CLIENT_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
 
     // 6. Send email with reset link
     const emailResult = await sendPasswordResetEmail(user.email, resetUrl);
