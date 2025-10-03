@@ -112,6 +112,7 @@ export async function post(event) {
       message: "Shipping address is required",
     };
   }
+  console.log("Bearer " + token, event.req.headers)
   const customerInfoObj = await fetchCustomerInfo(
     isGuest,
     customerInfo,
