@@ -4,10 +4,10 @@ import { z } from 'zod';
 
 /**
  * Handle webhook notifications for various events
- * @param {Object} req - Request object
- * @param {Object} res - Response object
+ * @param {import('../../../lib/utils/withErrorHandling.js').RouteEvent} event - event object
  */
-const handleWebhookNotification = async (req, res) => {
+const handleWebhookNotification = async (event) => {
+  const {req, res} = event;
   try {
     // Validate webhook payload
     const schema = z.object({
@@ -21,7 +21,7 @@ const handleWebhookNotification = async (req, res) => {
     // Verify webhook secret if in production
     if (process.env.NODE_ENV === 'production') {
       if (secret !== process.env.WEBHOOK_SECRET) {
-        logger.warn({ ip: req.ip }, 'Invalid webhook secret');
+        logger.app.warn({ ip: req.ip }, 'Invalid webhook secret');
         return res.status(401).json({ message: 'Unauthorized' });
       }
     }
@@ -35,7 +35,7 @@ const handleWebhookNotification = async (req, res) => {
       return res.status(422).json({ message: 'Event processing failed', error: result.error });
     }
   } catch (error) {
-    logger.error({ error: error.message }, 'Webhook notification error');
+    logger.app.error({ error: error.message }, 'Webhook notification error');
     
     if (error.name === 'ZodError') {
       return res.status(400).json({ message: 'Invalid webhook payload', errors: error.errors });

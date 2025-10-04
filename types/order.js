@@ -1,7 +1,7 @@
 /// <reference path="./user.js" />
 
 /**
- * @typedef {"pending" | "paid" | "shipped" | "completed" | "cancelled"} OrderStatus
+ * @typedef {"pending" | "placed" | "paid" | "shipped" | "completed" | "cancelled"} OrderStatus
  */
 
 /**

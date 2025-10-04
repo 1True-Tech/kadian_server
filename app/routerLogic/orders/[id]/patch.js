@@ -38,6 +38,7 @@ export async function updateOrder(event) {
               "shipped",
               "completed",
               "cancelled",
+              "placed"
             ].includes(value);
           },
           message: "must be one of pending|paid|shipped|completed|cancelled having {{value}}",
@@ -76,7 +77,7 @@ export async function updateOrder(event) {
     }
 
     // Trigger notification for order status update
-    webhookService.processEvent('order.status_updated', {
+    webhookService.processEvent('order_status_changed', {
       orderId: updated._id.toString(),
       userId: updated.userId,
       customerInfo: updated.customerInfo,
