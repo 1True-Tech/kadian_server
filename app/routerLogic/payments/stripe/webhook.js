@@ -7,11 +7,13 @@ import connectDbUsers from "../../../../lib/utils/mongo/connect-db-users.js";
 import Order from "../../../../models/order.js";
 
 /**
- * Process Stripe webhook events
+ * 
+ * @param {import("../../../../lib/utils/withErrorHandling.js").RouteEvent} event 
+ * @returns 
  */
 export default async function stripeWebhook(event) {
   try {
-    const sig = event.headers["stripe-signature"];
+    const sig = event.req.headers["stripe-signature"];
     if (!sig) {
       logger.payment.warn("Missing Stripe signature");
       return { data: null, statusCode: 400, message: "Missing stripe-signature header" };
@@ -19,7 +21,7 @@ export default async function stripeWebhook(event) {
 
     let stripeEvent;
     try {
-      stripeEvent = stripe.webhooks.constructEvent(event.rawBody, sig, STRIPE_WEBHOOK_SECRET);
+      stripeEvent = stripe.webhooks.constructEvent(event.req.body, sig, STRIPE_WEBHOOK_SECRET);
     } catch (err) {
       logger.payment.warn({ error: err.message }, "Invalid Stripe webhook signature");
       return { data: null, statusCode: 400, message: `Webhook verification failed: ${err.message}` };
