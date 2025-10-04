@@ -258,22 +258,28 @@ router({
 router({
   method: "post",
   path: "/orders",
-  handler: withErrorHandling(orders.post, { requireAuth: true }),
+  handler: withErrorHandling(orders.post),
 });
 router({
   method: "get",
   path: "/orders/:id",
-  handler: withErrorHandling(orders.orderItem.getOrder, { requireAuth: true }),
+  handler: withErrorHandling(orders.orderItem.getOrder),
 });
 router({
   method: "patch",
   path: "/orders/:id",
-  handler: withErrorHandling(orders.orderItem.updateOrder, { requireAuth: true }),
+  handler: withErrorHandling(orders.orderItem.updateOrder),
 });
 router({
   method: "delete",
   path: "/orders/:id/cancel",
-  handler: withErrorHandling(orders.orderItem.deleteOrder, { requireAuth: true }),
+  handler: withErrorHandling(orders.orderItem.deleteOrder),
+});
+
+router({
+  method: "post",
+  path: "/orders/:id/payment",
+  handler: withErrorHandling(orders.orderItem.updatePayment),
 });
 
 

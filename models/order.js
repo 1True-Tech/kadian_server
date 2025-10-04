@@ -93,13 +93,14 @@ const orderSchema = new Schema(
     items: [orderItemSchema],
     status: {
       type: String,
-      enum: ["pending", "paid", "shipped", "completed", "cancelled"],
+      enum: ["pending", "placed", "paid", "shipped", "completed", "cancelled"],
       default: "pending",
     },
     payment: paymentSchema, // Proof of payment or selection
     paymentHistory: [paymentHistorySchema], // Audit trail of payment status changes
     rawWebhookEvents: [{ type: Schema.Types.Mixed }], // Store raw webhook events for debugging
     shippingAddress: address,
+    idempotencyKey: { type: String, required: false },
     customerInfo: {
       name: {
         first: { type: String, required: true, minlength: 1, maxlength: 50 },

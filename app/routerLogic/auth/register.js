@@ -80,7 +80,7 @@ export default async function register(event) {
     const authTokens = newUser.generateAuthToken();
     
     // Trigger notifications for new user registration
-    webhookService.processEvent('user.created', {
+    webhookService.processEvent('user_created', {
       userId: newUser._id.toString(),
       username: newUser.username,
       email: newUser.email,
