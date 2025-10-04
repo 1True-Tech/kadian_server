@@ -26,6 +26,7 @@ import { healthLogic } from "./routerLogic/index.js";
 import inventory from "./routerLogic/inventory/index.js";
 import orders from "./routerLogic/orders/index.js";
 import payments from "./routerLogic/payments/index.js";
+import stripeWebhookRouter from "./routerLogic/payments/stripe/webhook.js";
 import webhooks from "./routerLogic/webhooks/index.js";
 
 // App setup
@@ -79,6 +80,7 @@ app.use(dynamicRequestSizeLimit);
 // Body parsers with appropriate limits
 app.use(bodyParser.json({ limit: '2mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '2mb' }));
+app.use("/", stripeWebhookRouter);
 
 const router = useRouter(app);
 
