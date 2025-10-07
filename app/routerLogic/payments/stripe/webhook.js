@@ -1,6 +1,9 @@
 import express from "express";
 import bodyParser from "body-parser";
-import { stripe, STRIPE_WEBHOOK_SECRET } from "../../../../lib/config/stripe.js";
+import {
+  stripe,
+  STRIPE_WEBHOOK_SECRET,
+} from "../../../../lib/config/stripe.js";
 import logger from "../../../../lib/utils/logger.js";
 import connectDbUsers from "../../../../lib/utils/mongo/connect-db-users.js";
 import Order from "../../../../models/order.js";
@@ -42,9 +45,16 @@ router.post(
 
       let stripeEvent;
       try {
-        stripeEvent = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
+        stripeEvent = stripe.webhooks.constructEvent(
+          req.body,
+          sig,
+          STRIPE_WEBHOOK_SECRET
+        );
       } catch (err) {
-        logger.payment.warn({ error: err.message }, "Invalid Stripe webhook signature");
+        logger.payment.warn(
+          { error: err.message },
+          "Invalid Stripe webhook signature"
+        );
         return res.status(400).json(
           responseTemplate({
             status: "bad",
@@ -60,23 +70,33 @@ router.post(
         case "checkout.session.completed": {
           const session = stripeEvent.data.object;
           const orderId = session.metadata?.orderId || null;
-          const customerEmail = session.customer_email || session.customer_details?.email;
+          const customerEmail =
+            session.customer_email || session.customer_details?.email;
 
           let existingOrder = orderId ? await Order.findById(orderId) : null;
 
-          const sessionWithLineItems = await stripe.checkout.sessions.retrieve(session.id);
-          const lineItems = sessionWithLineItems.line_items?.data || [];
+          const lineItemsData = await stripe.checkout.sessions.listLineItems(
+            session.id,
+            {
+              expand: ["data.price.product"], // expands the product object
+            }
+          );
+          console.log(lineItemsData.data);
+
+          const lineItems = lineItemsData?.data || [];
 
           const items = lineItems.map((item) => ({
             productId: item.price?.product?.metadata?.productId || "",
             variantSku: item.price?.product?.metadata?.variantSku || "",
             name: item.description || "",
             quantity: item.quantity || 1,
-            price: ((item.amount_total || 0) / (item.quantity || 1)) / 100,
+            price: (item.amount_total || 0) / (item.quantity || 1) / 100,
           }));
 
           const paymentIntentId =
-            typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
+            typeof session.payment_intent === "string"
+              ? session.payment_intent
+              : session.payment_intent?.id;
 
           const payment = {
             method: "card",
@@ -89,7 +109,9 @@ router.post(
             amount: (session.amount_total || 0) / 100,
             paidAt: new Date(),
             webhookProcessedAt: new Date(),
-            paymentMethod: session.payment_method_types ? { brand: "card" } : undefined,
+            paymentMethod: session.payment_method_types
+              ? { brand: "card" }
+              : undefined,
             payer: { email: customerEmail },
             receiptUrl: session.payment_intent ? undefined : session.url,
           };
@@ -109,12 +131,18 @@ router.post(
                 webhookEvent: "checkout.session.completed",
               },
             ];
-            existingOrder.rawWebhookEvents = [...(existingOrder.rawWebhookEvents || []), stripeEvent];
+            existingOrder.rawWebhookEvents = [
+              ...(existingOrder.rawWebhookEvents || []),
+              stripeEvent,
+            ];
             existingOrder.totalAmount = payment.amount;
             existingOrder.currency = payment.currency;
 
             await existingOrder.save();
-            logger.payment.info({ orderId: existingOrder._id }, "Order updated to paid");
+            logger.payment.info(
+              { orderId: existingOrder._id },
+              "Order updated to paid"
+            );
           } else {
             const newOrder = new Order({
               userId: null,
@@ -145,7 +173,10 @@ router.post(
                 : null,
               customerInfo: customerEmail
                 ? {
-                    name: { first: session.customer_details?.name || "", last: "" },
+                    name: {
+                      first: session.customer_details?.name || "",
+                      last: "",
+                    },
                     email: customerEmail,
                     phone: session.customer_details?.phone || "",
                   }
@@ -155,18 +186,27 @@ router.post(
             });
 
             await newOrder.save();
-            logger.payment.info({ orderId: newOrder._id }, "New order created from Stripe webhook");
+            logger.payment.info(
+              { orderId: newOrder._id },
+              "New order created from Stripe webhook"
+            );
           }
           break;
         }
 
         default:
-          logger.payment.info({ type: stripeEvent.type }, "Unhandled Stripe event");
+          logger.payment.info(
+            { type: stripeEvent.type },
+            "Unhandled Stripe event"
+          );
       }
 
       return res.status(200).json(responseTemplate({}));
     } catch (err) {
-      logger.payment.error({ error: err.message, stack: err.stack }, "Webhook processing error");
+      logger.payment.error(
+        { error: err.message, stack: err.stack },
+        "Webhook processing error"
+      );
       return res.status(500).json(
         responseTemplate({
           status: "bad",

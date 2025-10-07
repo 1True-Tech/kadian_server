@@ -152,7 +152,7 @@ async function calculateMetricsForRange(timeRange, baseUrl, event) {
       revenue,
       orders: orders.length,
       users: users.length,
-      allOrders: ordersRes.data || [], // Return all orders for other calculations
+      allOrders: ordersRes.data.filter(o => o.payment) || [], // Return all orders for other calculations
       allUsers: usersRes.data || [], // Return all users for other calculations
     };
   } catch (err) {
@@ -209,7 +209,6 @@ async function getRecentOrders(orders) {
  */
 async function getTopProducts(orders) {
   const productStats = {};
-
   // Calculate sales and revenue for each product
   orders.forEach((order) => {
     if (order.payment.status !== "paid") return;

@@ -76,11 +76,11 @@ app.use(cors({
 
 // Request size limits - apply before body parsers
 app.use(dynamicRequestSizeLimit);
+app.use("/", stripeWebhookRouter);
 
 // Body parsers with appropriate limits
 app.use(bodyParser.json({ limit: '2mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '2mb' }));
-app.use("/", stripeWebhookRouter);
 
 const router = useRouter(app);
 
@@ -367,12 +367,6 @@ router({
   handler: withErrorHandling(payments.stripe.createCheckoutSession),
 });
 
-router({
-  method: "post",
-  path: "/payments/stripe/webhook",
-  middleware: [bodyParser.raw({ type: 'application/json' })],
-  handler: payments.stripe.webhook,
-});
 
 // Payment routes - PayPal
 router({
