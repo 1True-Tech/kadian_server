@@ -63,7 +63,7 @@ export default async function createCheckoutSession(event) {
             variantSku: item.variantSku || "",
           },
         },
-        unit_amount: Math.round(item.price * 100), // cents
+        unit_amount: item.price, // cents
       },
       quantity: item.quantity,
     }));
