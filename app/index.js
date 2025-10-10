@@ -277,6 +277,11 @@ router({
   path: "/orders/:id/cancel",
   handler: withErrorHandling(orders.orderItem.deleteOrder),
 });
+router({
+  method: "delete",
+  path: "/orders/:id",
+  handler: withErrorHandling(orders.orderItem.permanentlyDeleteOrder),
+});
 
 router({
   method: "post",
