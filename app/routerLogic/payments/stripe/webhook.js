@@ -70,6 +70,8 @@ router.post(
         case "checkout.session.completed": {
           const session = stripeEvent.data.object;
           const orderId = session.metadata?.orderId || null;
+          const collectedInfo = session.collected_information;
+
           const customerEmail =
             session.customer_email || session.customer_details?.email;
 
@@ -81,7 +83,6 @@ router.post(
               expand: ["data.price.product"], // expands the product object
             }
           );
-          console.log(lineItemsData.data);
 
           const lineItems = lineItemsData?.data || [];
 
@@ -120,6 +121,14 @@ router.post(
             existingOrder.status = "paid";
             existingOrder.items = items;
             existingOrder.payment = payment;
+            existingOrder.shippingAddress = {
+              line1: collectedInfo.shipping_details.address.line1,
+              city: collectedInfo.shipping_details.address.city,
+              state: collectedInfo.shipping_details.address.state,
+              postal: collectedInfo.shipping_details.address.postal_code,
+              country: collectedInfo.shipping_details.address.country,
+              line2: collectedInfo.shipping_details.address.line2,
+            };
             existingOrder.paymentHistory = [
               ...(existingOrder.paymentHistory || []),
               {
